@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Scaffolds android/ + ios/ (missing from this repo) and applies the
-# manual edits described in README.md automatically, so CI can build
-# without a human doing it by hand each time.
 set -euo pipefail
 
 ORG="com.kstsinasub"
@@ -10,31 +7,55 @@ APP_ID="com.kstsinasub.app"
 echo "==> Creating platform folders (android/, ios/) if missing..."
 flutter create --org "$ORG" --platforms android,ios .
 
-APP_GRADLE="android/app/build.gradle"
-ROOT_GRADLE="android/build.gradle"
+if [ -f "android/app/build.gradle.kts" ]; then
+  KTS=true
+  APP_GRADLE="android/app/build.gradle.kts"
+  SETTINGS_GRADLE="android/settings.gradle.kts"
+  echo "==> Detected Kotlin DSL Gradle template."
+elif [ -f "android/app/build.gradle" ]; then
+  KTS=false
+  APP_GRADLE="android/app/build.gradle"
+  ROOT_GRADLE="android/build.gradle"
+  echo "==> Detected Groovy Gradle template."
+else
+  echo "ERROR: neither android/app/build.gradle nor android/app/build.gradle.kts was found after flutter create."
+  ls -la android/app/ || true
+  exit 1
+fi
 
 echo "==> Forcing applicationId to $APP_ID ..."
-sed -i "s/applicationId \".*\"/applicationId \"$APP_ID\"/" "$APP_GRADLE"
+if [ "$KTS" = true ]; then
+  sed -i "s/applicationId = \".*\"/applicationId = \"$APP_ID\"/" "$APP_GRADLE"
+else
+  sed -i "s/applicationId \".*\"/applicationId \"$APP_ID\"/" "$APP_GRADLE"
+fi
 
 echo "==> Placing google-services.json ..."
 if [ ! -f "google-services-temp.json" ]; then
-  echo "ERROR: google-services-temp.json not found at repo root (should be written from secret before this script runs)."
+  echo "ERROR: google-services-temp.json not found at repo root."
   exit 1
 fi
 cp google-services-temp.json android/app/google-services.json
 
 echo "==> Adding Google Services Gradle plugin ..."
-if ! grep -q "com.google.gms:google-services" "$ROOT_GRADLE"; then
-  # Add classpath inside the buildscript { dependencies { ... } } block
-  perl -0777 -pi -e "s/(buildscript\s*\{[^}]*dependencies\s*\{)/\$1\n        classpath 'com.google.gms:google-services:4.5.0'/s" "$ROOT_GRADLE"
-fi
-
-if ! head -n1 "$APP_GRADLE" | grep -q "com.google.gms.google-services"; then
-  sed -i "1i apply plugin: 'com.google.gms.google-services'" "$APP_GRADLE"
+if [ "$KTS" = true ]; then
+  if [ -f "$SETTINGS_GRADLE" ] && ! grep -q "com.google.gms.google-services" "$SETTINGS_GRADLE"; then
+    perl -0777 -pi -e 's/(plugins\s*\{)/$1\n    id("com.google.gms.google-services") version "4.4.2" apply false/s' "$SETTINGS_GRADLE"
+  fi
+  if ! grep -q "com.google.gms.google-services" "$APP_GRADLE"; then
+    perl -0777 -pi -e 's/(plugins\s*\{)/$1\n    id("com.google.gms.google-services")/s' "$APP_GRADLE"
+  fi
+else
+  if ! grep -q "com.google.gms:google-services" "$ROOT_GRADLE"; then
+    perl -0777 -pi -e "s/(buildscript\s*\{[^}]*dependencies\s*\{)/\$1\n        classpath 'com.google.gms:google-services:4.5.0'/s" "$ROOT_GRADLE"
+  fi
+  if ! head -n1 "$APP_GRADLE" | grep -q "com.google.gms.google-services"; then
+    sed -i "1i apply plugin: 'com.google.gms.google-services'" "$APP_GRADLE"
+  fi
 fi
 
 echo "==> Applying fingerprint-unlock native edits ..."
-MAIN_ACTIVITY=$(find android/app/src/main -name "MainActivity.kt")
+MAIN_ACTIVITY=$(find android/app/src/main -name "MainActivity.kt" | head -n1 || true)
 if [ -n "$MAIN_ACTIVITY" ]; then
   sed -i "s/io.flutter.embedding.android.FlutterActivity/io.flutter.embedding.android.FlutterFragmentActivity/" "$MAIN_ACTIVITY"
   sed -i "s/: FlutterActivity/: FlutterFragmentActivity/" "$MAIN_ACTIVITY"
@@ -54,9 +75,29 @@ EOF
 
 echo "==> Wiring signingConfigs into $APP_GRADLE (if not already present) ..."
 if ! grep -q "key.properties" "$APP_GRADLE"; then
-  perl -0777 -pi -e "s/(android \{)/\$1\n    def keystorePropertiesFile = rootProject.file(\"key.properties\")\n    def keystoreProperties = new Properties()\n    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\n/s" "$APP_GRADLE"
-  perl -0777 -pi -e "s/(buildTypes\s*\{)/    signingConfigs {\n        release {\n            keyAlias keystoreProperties['keyAlias']\n            keyPassword keystoreProperties['keyPassword']\n            storeFile file(keystoreProperties['storeFile'])\n            storePassword keystoreProperties['storePassword']\n        }\n    }\n\$1/s" "$APP_GRADLE"
-  perl -0777 -pi -e "s/(release\s*\{)/\$1\n            signingConfig signingConfigs.release/s" "$APP_GRADLE"
+  if [ "$KTS" = true ]; then
+    TMP_FILE=$(mktemp)
+    {
+      echo "import java.util.Properties"
+      echo "import java.io.FileInputStream"
+      echo ""
+      cat "$APP_GRADLE"
+    } > "$TMP_FILE"
+    mv "$TMP_FILE" "$APP_GRADLE"
+
+    perl -0777 -pi -e 's/(android\s*\{)/$1\n    val keystoreProperties = Properties()\n    val keystorePropertiesFile = rootProject.file("key.properties")\n    if (keystorePropertiesFile.exists()) {\n        keystoreProperties.load(FileInputStream(keystorePropertiesFile))\n    }\n/s' "$APP_GRADLE"
+
+    perl -0777 -pi -e 's/(buildTypes\s*\{)/    signingConfigs {\n        create("release") {\n            keyAlias = keystoreProperties["keyAlias"] as String?\n            keyPassword = keystoreProperties["keyPassword"] as String?\n            storeFile = keystoreProperties["storeFile"]?.let { file(it as String) }\n            storePassword = keystoreProperties["storePassword"] as String?\n        }\n    }\n\n$1/s' "$APP_GRADLE"
+
+    perl -0777 -pi -e 's/(release\s*\{)/$1\n            signingConfig = signingConfigs.getByName("release")/s' "$APP_GRADLE"
+  else
+    perl -0777 -pi -e "s/(android \{)/\$1\n    def keystorePropertiesFile = rootProject.file(\"key.properties\")\n    def keystoreProperties = new Properties()\n    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\n/s" "$APP_GRADLE"
+    perl -0777 -pi -e "s/(buildTypes\s*\{)/    signingConfigs {\n        release {\n            keyAlias keystoreProperties['keyAlias']\n            keyPassword keystoreProperties['keyPassword']\n            storeFile file(keystoreProperties['storeFile'])\n            storePassword keystoreProperties['storePassword']\n        }\n    }\n\$1/s" "$APP_GRADLE"
+    perl -0777 -pi -e "s/(release\s*\{)/\$1\n            signingConfig signingConfigs.release/s" "$APP_GRADLE"
+  fi
 fi
+
+echo "==> Final $APP_GRADLE for reference:"
+cat "$APP_GRADLE"
 
 echo "==> Done. Android project is ready to build."
