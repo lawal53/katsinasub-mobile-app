@@ -101,3 +101,37 @@ echo "==> Final $APP_GRADLE for reference:"
 cat "$APP_GRADLE"
 
 echo "==> Done. Android project is ready to build."
+echo "==> Enabling core library desugaring (required by flutter_local_notifications) ..."
+if [ "$KTS" = true ]; then
+  if grep -q "compileOptions" "$APP_GRADLE"; then
+    if ! grep -q "isCoreLibraryDesugaringEnabled" "$APP_GRADLE"; then
+      perl -0777 -pi -e 's/(compileOptions\s*\{)/$1\n        isCoreLibraryDesugaringEnabled = true/s' "$APP_GRADLE"
+    fi
+  else
+    perl -0777 -pi -e 's/(android\s*\{)/$1\n    compileOptions {\n        isCoreLibraryDesugaringEnabled = true\n    }/s' "$APP_GRADLE"
+  fi
+  if ! grep -q "coreLibraryDesugaring" "$APP_GRADLE"; then
+    cat >> "$APP_GRADLE" <<'EOF2'
+
+dependencies {
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+}
+EOF2
+  fi
+else
+  if grep -q "compileOptions" "$APP_GRADLE"; then
+    if ! grep -q "coreLibraryDesugaringEnabled" "$APP_GRADLE"; then
+      perl -0777 -pi -e 's/(compileOptions\s*\{)/$1\n        coreLibraryDesugaringEnabled true/s' "$APP_GRADLE"
+    fi
+  else
+    perl -0777 -pi -e "s/(android \{)/\$1\n    compileOptions {\n        coreLibraryDesugaringEnabled true\n    }/s" "$APP_GRADLE"
+  fi
+  if ! grep -q "coreLibraryDesugaring" "$APP_GRADLE"; then
+    cat >> "$APP_GRADLE" <<'EOF2'
+
+dependencies {
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
+}
+EOF2
+  fi
+fi
