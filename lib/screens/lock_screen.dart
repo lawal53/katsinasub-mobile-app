@@ -20,37 +20,7 @@ class _LockScreenState extends State<LockScreen> {
   final _lock = LockService.instance;
   String _pin = '';
   bool _checking = false;
-  bool _biometricAvailable = false;
   String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _lock.biometricEnabled.then((enabled) {
-      if (enabled && mounted) {
-        setState(() => _biometricAvailable = true);
-        _tryBiometric();
-      }
-    });
-  }
-
-  Future<void> _tryBiometric() async {
-    final result = await _lock.unlockWithBiometric();
-    if (!mounted) return;
-    switch (result) {
-      case BiometricUnlockResult.ok:
-        break; // LockService already flipped `locked` to false
-      case BiometricUnlockResult.invalidated:
-        setState(() {
-          _biometricAvailable = false;
-          _error = 'An canza fingerprint akan wannan waya. Shigar da PIN, sannan a je Account Settings > Security don sake kunna fingerprint.';
-        });
-        break;
-      case BiometricUnlockResult.canceled:
-      case BiometricUnlockResult.error:
-        break; // just let them type the PIN
-    }
-  }
 
   void _tapDigit(String d) {
     if (_pin.length >= 4 || _checking) return;
@@ -140,9 +110,7 @@ class _LockScreenState extends State<LockScreen> {
             for (final d in row) _key(d),
           ]),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          _biometricAvailable
-              ? _iconKey(Icons.fingerprint, _tryBiometric)
-              : const SizedBox(width: 72, height: 72),
+          const SizedBox(width: 72, height: 72),
           _key('0'),
           _iconKey(Icons.backspace_outlined, _backspace),
         ]),
