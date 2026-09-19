@@ -109,8 +109,6 @@ class LockService {
       switch (e.code) {
         case AuthExceptionCode.userCanceled:
           return BiometricUnlockResult.canceled;
-        case AuthExceptionCode.lockedOut:
-        case AuthExceptionCode.lockedOutPermanently:
         case AuthExceptionCode.timeout:
           // Temporary — too many wrong fingerprints, not an enrollment
           // change. Let the user fall back to typing the PIN; leave
