@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+# Scaffolds android/ + ios/ (missing from this repo) and applies the
+# manual edits described in README.md automatically, so CI can build
+# without a human doing it by hand each time.
+#
+# Flutter's default Android template changed over time: older
+# versions generate Groovy files (build.gradle, settings.gradle);
+# newer versions generate Kotlin DSL files (build.gradle.kts,
+# settings.gradle.kts). This script detects which one flutter create
+# produced and edits the right files with the right syntax.
 set -euo pipefail
 
 ORG="com.kstsinasub"
@@ -19,6 +28,7 @@ elif [ -f "android/app/build.gradle" ]; then
   echo "==> Detected Groovy Gradle template."
 else
   echo "ERROR: neither android/app/build.gradle nor android/app/build.gradle.kts was found after flutter create."
+  echo "Contents of android/app/:"
   ls -la android/app/ || true
   exit 1
 fi
@@ -32,7 +42,7 @@ fi
 
 echo "==> Placing google-services.json ..."
 if [ ! -f "google-services-temp.json" ]; then
-  echo "ERROR: google-services-temp.json not found at repo root."
+  echo "ERROR: google-services-temp.json not found at repo root (should be written from secret before this script runs)."
   exit 1
 fi
 cp google-services-temp.json android/app/google-services.json
@@ -59,6 +69,11 @@ MAIN_ACTIVITY=$(find android/app/src/main -name "MainActivity.kt" | head -n1 || 
 if [ -n "$MAIN_ACTIVITY" ]; then
   sed -i "s/io.flutter.embedding.android.FlutterActivity/io.flutter.embedding.android.FlutterFragmentActivity/" "$MAIN_ACTIVITY"
   sed -i "s/: FlutterActivity/: FlutterFragmentActivity/" "$MAIN_ACTIVITY"
+fi
+
+ANDROID_MANIFEST="android/app/src/main/AndroidManifest.xml"
+if [ -f "$ANDROID_MANIFEST" ] && ! grep -q "USE_BIOMETRIC" "$ANDROID_MANIFEST"; then
+  perl -0777 -pi -e 's/(<manifest[^>]*>)/$1\n    <uses-permission android:name="android.permission.USE_BIOMETRIC" \/>/s' "$ANDROID_MANIFEST"
 fi
 
 if [ -f "ios/Runner/Info.plist" ] && ! grep -q "NSFaceIDUsageDescription" ios/Runner/Info.plist; then
@@ -101,37 +116,3 @@ echo "==> Final $APP_GRADLE for reference:"
 cat "$APP_GRADLE"
 
 echo "==> Done. Android project is ready to build."
-echo "==> Enabling core library desugaring (required by flutter_local_notifications) ..."
-if [ "$KTS" = true ]; then
-  if grep -q "compileOptions" "$APP_GRADLE"; then
-    if ! grep -q "isCoreLibraryDesugaringEnabled" "$APP_GRADLE"; then
-      perl -0777 -pi -e 's/(compileOptions\s*\{)/$1\n        isCoreLibraryDesugaringEnabled = true/s' "$APP_GRADLE"
-    fi
-  else
-    perl -0777 -pi -e 's/(android\s*\{)/$1\n    compileOptions {\n        isCoreLibraryDesugaringEnabled = true\n    }/s' "$APP_GRADLE"
-  fi
-  if ! grep -q "coreLibraryDesugaring" "$APP_GRADLE"; then
-    cat >> "$APP_GRADLE" <<'EOF2'
-
-dependencies {
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-}
-EOF2
-  fi
-else
-  if grep -q "compileOptions" "$APP_GRADLE"; then
-    if ! grep -q "coreLibraryDesugaringEnabled" "$APP_GRADLE"; then
-      perl -0777 -pi -e 's/(compileOptions\s*\{)/$1\n        coreLibraryDesugaringEnabled true/s' "$APP_GRADLE"
-    fi
-  else
-    perl -0777 -pi -e "s/(android \{)/\$1\n    compileOptions {\n        coreLibraryDesugaringEnabled true\n    }/s" "$APP_GRADLE"
-  fi
-  if ! grep -q "coreLibraryDesugaring" "$APP_GRADLE"; then
-    cat >> "$APP_GRADLE" <<'EOF2'
-
-dependencies {
-    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
-}
-EOF2
-  fi
-fi
