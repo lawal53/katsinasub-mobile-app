@@ -36,8 +36,10 @@ fi
 echo "==> Forcing applicationId to $APP_ID ..."
 if [ "$KTS" = true ]; then
   sed -i "s/applicationId = \".*\"/applicationId = \"$APP_ID\"/" "$APP_GRADLE"
+  sed -i "s/compileSdk = flutter.compileSdkVersion/compileSdk = 36/" "$APP_GRADLE"
 else
   sed -i "s/applicationId \".*\"/applicationId \"$APP_ID\"/" "$APP_GRADLE"
+  sed -i "s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 36/" "$APP_GRADLE"
 fi
 
 echo "==> Placing google-services.json ..."
@@ -61,6 +63,46 @@ else
   fi
   if ! head -n1 "$APP_GRADLE" | grep -q "com.google.gms.google-services"; then
     sed -i "1i apply plugin: 'com.google.gms.google-services'" "$APP_GRADLE"
+  fi
+fi
+
+echo "==> Forcing all Android library subprojects (including third-party plugins like file_picker) onto a modern compileSdk ..."
+# Some plugins hardcode a stale compileSdk in their own android/build.gradle
+# regardless of what our app's compileSdk is set to, which then fails to
+# build against newer transitive dependencies (e.g. file_picker's own
+# compileSdk 34 vs. flutter_plugin_android_lifecycle needing 36+). This
+# forces every plugin subproject onto the same modern compileSdk.
+if [ "$KTS" = true ]; then
+  ROOT_GRADLE_KTS="android/build.gradle.kts"
+  if [ -f "$ROOT_GRADLE_KTS" ] && ! grep -q "^subprojects" "$ROOT_GRADLE_KTS"; then
+    cat >> "$ROOT_GRADLE_KTS" <<'EOF3'
+
+subprojects {
+    afterEvaluate {
+        extensions.findByName("android")?.let { ext ->
+            val method = ext.javaClass.methods.firstOrNull {
+                it.name == "setCompileSdkVersion" && it.parameterTypes.size == 1 && it.parameterTypes[0] == Int::class.javaPrimitiveType
+            }
+            method?.invoke(ext, 36)
+        }
+    }
+}
+EOF3
+  fi
+else
+  if [ -f "$ROOT_GRADLE" ] && ! grep -q "^subprojects" "$ROOT_GRADLE"; then
+    cat >> "$ROOT_GRADLE" <<'EOF3'
+
+subprojects {
+    afterEvaluate { proj ->
+        if (proj.hasProperty('android')) {
+            proj.android {
+                compileSdk 36
+            }
+        }
+    }
+}
+EOF3
   fi
 fi
 
