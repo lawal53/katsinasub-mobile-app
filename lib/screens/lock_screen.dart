@@ -6,7 +6,9 @@ import 'login_screen.dart';
 
 /// Full-screen PIN pad shown whenever [LockService.instance.locked] is
 /// true — on cold app start (if the account has a transaction PIN) and
-/// after 5 minutes in the background. Same PIN as the website.
+/// after 5 minutes in the background. Same PIN as the website. If the
+/// account has fingerprint unlock turned on, it's offered as a shortcut
+/// and is tried automatically as soon as this screen appears.
 class LockScreen extends StatefulWidget {
   const LockScreen({super.key});
   @override
@@ -21,6 +23,34 @@ class _LockScreenState extends State<LockScreen> {
   String _pin = '';
   bool _checking = false;
   String? _error;
+  bool _biometricAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _lock.biometricEnabled.then((enabled) {
+      if (!mounted) return;
+      if (enabled) {
+        setState(() => _biometricAvailable = true);
+        _tryBiometric();
+      }
+    });
+  }
+
+  Future<void> _tryBiometric() async {
+    final result = await _lock.unlockWithBiometric();
+    if (!mounted) return;
+    switch (result) {
+      case BiometricUnlockResult.ok:
+        break; // LockService already flipped `locked` to false
+      case BiometricUnlockResult.invalidated:
+        setState(() => _biometricAvailable = false);
+        break;
+      case BiometricUnlockResult.canceled:
+      case BiometricUnlockResult.error:
+        break; // stay on the PIN pad, no need to alarm the user
+    }
+  }
 
   void _tapDigit(String d) {
     if (_pin.length >= 4 || _checking) return;
@@ -110,7 +140,9 @@ class _LockScreenState extends State<LockScreen> {
             for (final d in row) _key(d),
           ]),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const SizedBox(width: 72, height: 72),
+          _biometricAvailable
+              ? _iconKey(Icons.fingerprint, _tryBiometric)
+              : const SizedBox(width: 72, height: 72),
           _key('0'),
           _iconKey(Icons.backspace_outlined, _backspace),
         ]),
