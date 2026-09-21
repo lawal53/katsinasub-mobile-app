@@ -71,10 +71,7 @@ echo "==> Forcing all Android library subprojects (including third-party plugins
 # regardless of what our app's compileSdk is set to, which then fails to
 # build against newer transitive dependencies (e.g. file_picker's own
 # compileSdk 34 vs. flutter_plugin_android_lifecycle needing 36+). This
-# forces every plugin subproject onto the same modern compileSdk, using
-# plugins.withId (fires as the android plugin is applied, before full
-# evaluation) as the primary mechanism since afterEvaluate alone wasn't
-# enough — kept as a second attempt just in case.
+# forces every plugin subproject onto the same modern compileSdk.
 if [ "$KTS" = true ]; then
   ROOT_GRADLE_KTS="android/build.gradle.kts"
   if [ -f "$ROOT_GRADLE_KTS" ] && ! grep -q "^subprojects" "$ROOT_GRADLE_KTS"; then
