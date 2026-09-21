@@ -72,11 +72,18 @@ echo "==> Forcing all Android library subprojects (including third-party plugins
 # build against newer transitive dependencies (e.g. file_picker's own
 # compileSdk 34 vs. flutter_plugin_android_lifecycle needing 36+). This
 # forces every plugin subproject onto the same modern compileSdk.
+#
+# IMPORTANT: flutter create's own default build.gradle ALREADY contains
+# "subprojects { ... }" blocks (for buildDir/evaluationDependsOn), so a
+# guard that greps for the bare word "subprojects" always finds a false
+# match and skips adding ours. Guard on a unique marker comment instead.
+MARKER="KATSINASUB_COMPILESDK_OVERRIDE"
 if [ "$KTS" = true ]; then
   ROOT_GRADLE_KTS="android/build.gradle.kts"
-  if [ -f "$ROOT_GRADLE_KTS" ] && ! grep -q "^subprojects" "$ROOT_GRADLE_KTS"; then
-    cat >> "$ROOT_GRADLE_KTS" <<'EOF3'
+  if [ -f "$ROOT_GRADLE_KTS" ] && ! grep -q "$MARKER" "$ROOT_GRADLE_KTS"; then
+    cat >> "$ROOT_GRADLE_KTS" <<EOF3
 
+// $MARKER
 subprojects {
     afterEvaluate {
         extensions.findByName("android")?.let { ext ->
@@ -89,10 +96,13 @@ subprojects {
 }
 EOF3
   fi
+  echo "==> $ROOT_GRADLE_KTS now contains:"
+  cat "$ROOT_GRADLE_KTS"
 else
-  if [ -f "$ROOT_GRADLE" ] && ! grep -q "^subprojects" "$ROOT_GRADLE"; then
-    cat >> "$ROOT_GRADLE" <<'EOF3'
+  if [ -f "$ROOT_GRADLE" ] && ! grep -q "$MARKER" "$ROOT_GRADLE"; then
+    cat >> "$ROOT_GRADLE" <<EOF3
 
+// $MARKER
 subprojects { proj ->
     proj.plugins.withId('com.android.library') {
         proj.android {
