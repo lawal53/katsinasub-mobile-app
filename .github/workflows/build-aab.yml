@@ -23,6 +23,9 @@ jobs:
       - name: Write google-services.json from secret
         run: echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 -d > google-services-temp.json
 
+      - name: Write keystore from secret
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > release-keystore.jks
+
       - name: Scaffold android/ios and apply required edits
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -38,18 +41,17 @@ jobs:
       - name: Build release App Bundle
         run: flutter build appbundle --release
 
-      - name: Sign App Bundle
-        uses: rstudio/actions/sign-android-release@v1
-        with:
-          releaseDirectory: build/app/outputs/bundle/release
-          signingKeyBase64: ${{ secrets.KEYSTORE_BASE64 }}
-          alias: ${{ secrets.KEY_ALIAS }}
-          keyPassword: ${{ secrets.KEY_PASSWORD }}
-          storePassword: ${{ secrets.KEYSTORE_PASSWORD }}
+      - name: Sign App Bundle with jarsigner
+        run: |
+          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA-256 \
+            -keystore release-keystore.jks \
+            -storepass "${{ secrets.KEYSTORE_PASSWORD }}" \
+            -keypass "${{ secrets.KEY_PASSWORD }}" \
+            build/app/outputs/bundle/release/app-release.aab \
+            "${{ secrets.KEY_ALIAS }}"
 
       - name: Upload .aab as workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-aab
           path: build/app/outputs/bundle/release/app-release.aab
-          
