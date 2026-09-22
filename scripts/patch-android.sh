@@ -84,13 +84,20 @@ if [ "$KTS" = true ]; then
     cat >> "$ROOT_GRADLE_KTS" <<EOF3
 
 // $MARKER
+// Excludes ":app" deliberately — Flutter's own template forces :app to
+// evaluate early via evaluationDependsOn(":app"), so registering
+// afterEvaluate on it here throws "Cannot run Project.afterEvaluate
+// when the project is already evaluated." app's own compileSdk is
+// already set directly earlier in this script anyway.
 subprojects {
-    afterEvaluate {
-        extensions.findByName("android")?.let { ext ->
-            val method = ext.javaClass.methods.firstOrNull {
-                it.name == "setCompileSdkVersion" && it.parameterTypes.size == 1 && it.parameterTypes[0] == Int::class.javaPrimitiveType
+    if (name != "app") {
+        afterEvaluate {
+            extensions.findByName("android")?.let { ext ->
+                val method = ext.javaClass.methods.firstOrNull {
+                    it.name == "setCompileSdkVersion" && it.parameterTypes.size == 1 && it.parameterTypes[0] == Int::class.javaPrimitiveType
+                }
+                method?.invoke(ext, 36)
             }
-            method?.invoke(ext, 36)
         }
     }
 }
@@ -103,16 +110,21 @@ else
     cat >> "$ROOT_GRADLE" <<EOF3
 
 // $MARKER
+// Excludes ":app" deliberately — same evaluationDependsOn(":app") timing
+// conflict as the Kotlin DSL branch above. app's own compileSdk is
+// already set directly earlier in this script anyway.
 subprojects { proj ->
-    proj.plugins.withId('com.android.library') {
-        proj.android {
-            compileSdk 36
-        }
-    }
-    proj.afterEvaluate {
-        if (proj.hasProperty('android')) {
+    if (proj.name != 'app') {
+        proj.plugins.withId('com.android.library') {
             proj.android {
                 compileSdk 36
+            }
+        }
+        proj.afterEvaluate {
+            if (proj.hasProperty('android')) {
+                proj.android {
+                    compileSdk 36
+                }
             }
         }
     }
