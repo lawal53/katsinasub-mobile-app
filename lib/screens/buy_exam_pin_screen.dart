@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
+import '../widgets/pin_field.dart';
+import '../purchase_result.dart';
 import '../services/api_service.dart';
 
 class BuyExamPinScreen extends StatefulWidget {
@@ -51,19 +54,12 @@ class _BuyExamPinScreenState extends State<BuyExamPinScreen> {
     setState(() => _busy = false);
     if (!mounted) return;
 
-    if (res['pin'] != null && (res['pin'] as String).isNotEmpty) {
-      await showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Your PIN(s)'),
-          content: SelectableText(res['pin']),
-          actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Done')));
+    final pin = res['pin'];
+    final shown = Map<String, dynamic>.from(res);
+    if (pin is String && pin.isNotEmpty) {
+      shown['message'] = '${res['message'] ?? 'Successful'}\nPIN(s): $pin';
     }
-    if (res['success'] == true) Navigator.pop(context);
+    await showPurchaseResult(context, shown);
   }
 
   @override
@@ -89,20 +85,16 @@ class _BuyExamPinScreenState extends State<BuyExamPinScreen> {
             controller: _qtyCtrl,
             keyboardType: TextInputType.number,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(labelText: 'Quantity', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: tr('Quantity'), border: OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _phoneCtrl,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Phone Number (PIN sent via SMS)', hintText: '08012345678', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: tr('Phone Number (PIN sent via SMS)'), hintText: tr('08012345678'), border: OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _pinCtrl,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Transaction PIN', border: OutlineInputBorder()),
-          ),
+          PinField(controller: _pinCtrl),
           const SizedBox(height: 16),
           Card(
             color: Theme.of(context).colorScheme.secondaryContainer,

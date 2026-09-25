@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
+import '../widgets/pin_field.dart';
+import '../purchase_result.dart';
 import '../services/api_service.dart';
 
 class BuyElectricityScreen extends StatefulWidget {
@@ -15,6 +18,7 @@ class _BuyElectricityScreenState extends State<BuyElectricityScreen> {
   final _pinCtrl = TextEditingController();
 
   List<dynamic> _discos = [];
+  Map<String, dynamic> _charges = {};
   String? _selectedDisco;
   String _meterType = 'prepaid';
   bool _loading = true;
@@ -32,9 +36,30 @@ class _BuyElectricityScreenState extends State<BuyElectricityScreen> {
     final res = await _api.electricityDiscos();
     setState(() {
       _discos = res['success'] == true ? res['discos'] : [];
+      _charges = res['success'] == true && res['charges'] is Map ? Map<String, dynamic>.from(res['charges']) : {};
       _selectedDisco = _discos.isNotEmpty ? _discos.first : null;
       _loading = false;
     });
+  }
+
+  double _chargeFor(double amount) {
+    final c = _charges[_verification?['disco'] ?? _selectedDisco];
+    if (c == null) return 0;
+    final pct = (c['percent'] as num?)?.toDouble() ?? 0;
+    final cap = (c['cap'] as num?)?.toDouble() ?? 0;
+    var fee = amount * pct / 100;
+    if (cap > 0 && fee > cap) fee = cap;
+    return fee;
+  }
+
+  String _chargeNote(double amount) {
+    final c = _charges[_verification?['disco'] ?? _selectedDisco];
+    final pct = (c?['percent'] as num?)?.toDouble() ?? 0;
+    if (pct <= 0) return '';
+    final cap = (c['cap'] as num?)?.toDouble() ?? 0;
+    final fee = _chargeFor(amount);
+    return 'Service charge: $pct%${cap > 0 ? ' (max ₦${cap.toStringAsFixed(0)})' : ''}'
+        '${amount > 0 ? ' = ₦${fee.toStringAsFixed(2)} — Total ₦${(amount + fee).toStringAsFixed(2)}' : ''}';
   }
 
   Future<void> _verify() async {
@@ -71,8 +96,7 @@ class _BuyElectricityScreenState extends State<BuyElectricityScreen> {
     );
     setState(() => _busy = false);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Done')));
-    if (res['success'] == true) Navigator.pop(context);
+    await showPurchaseResult(context, res);
   }
 
   @override
@@ -106,7 +130,7 @@ class _BuyElectricityScreenState extends State<BuyElectricityScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _meterCtrl,
-              decoration: const InputDecoration(labelText: 'Meter Number', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: tr('Meter Number'), border: OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
             FilledButton(
@@ -146,20 +170,21 @@ class _BuyElectricityScreenState extends State<BuyElectricityScreen> {
             TextField(
               controller: _amountCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Amount (₦, min 500)', border: OutlineInputBorder()),
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                labelText: tr('Amount (₦, min 500)'),
+                helperText: _chargeNote(double.tryParse(_amountCtrl.text) ?? 0),
+                border: const OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _phoneCtrl,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Phone Number', hintText: '08012345678', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: tr('Phone Number'), hintText: tr('08012345678'), border: OutlineInputBorder()),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _pinCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Transaction PIN', border: OutlineInputBorder()),
-            ),
+            PinField(controller: _pinCtrl),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _busy ? null : _pay,

@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
+import '../widgets/pin_field.dart';
+import '../purchase_result.dart';
 import '../services/api_service.dart';
 
 class BulkSmsScreen extends StatefulWidget {
@@ -31,8 +34,7 @@ class _BulkSmsScreenState extends State<BulkSmsScreen> {
     );
     setState(() => _busy = false);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Done')));
-    if (res['success'] == true) Navigator.pop(context);
+    await showPurchaseResult(context, res);
   }
 
   @override
@@ -45,13 +47,13 @@ class _BulkSmsScreenState extends State<BulkSmsScreen> {
           TextField(
             controller: _senderCtrl,
             maxLength: 11,
-            decoration: const InputDecoration(labelText: 'Sender ID (optional)', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: tr('Sender ID (optional)'), border: OutlineInputBorder()),
           ),
           TextField(
             controller: _recipientsCtrl,
             maxLines: 3,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(labelText: 'Phone Numbers (comma or newline separated)', hintText: '08012345678, 08087654321', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: tr('Phone Numbers (comma or newline separated)'), hintText: tr('08012345678, 08087654321'), border: OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -59,13 +61,9 @@ class _BulkSmsScreenState extends State<BulkSmsScreen> {
             maxLines: 4,
             maxLength: 640,
             onChanged: (_) => setState(() {}),
-            decoration: const InputDecoration(labelText: 'Message', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: tr('Message'), border: OutlineInputBorder()),
           ),
-          TextField(
-            controller: _pinCtrl,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Transaction PIN', border: OutlineInputBorder()),
-          ),
+          PinField(controller: _pinCtrl),
           const SizedBox(height: 8),
           Text('Sending to $_recipientCount valid number(s)'),
           const SizedBox(height: 16),

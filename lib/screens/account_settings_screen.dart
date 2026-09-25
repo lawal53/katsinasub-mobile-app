@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
 import '../services/api_service.dart';
 import '../services/lock_service.dart';
+import '../services/purchase_pin_service.dart';
 import 'verify_contact_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
@@ -27,11 +29,16 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _biometricOn = false;
   bool _biometricBusy = false;
 
+  final _purchasePin = PurchasePinService();
+  bool _purchaseFingerprintOn = false;
+  bool _purchaseFingerprintBusy = false;
+
   @override
   void initState() {
     super.initState();
     _loadUser();
     _lock.biometricEnabled.then((v) { if (mounted) setState(() => _biometricOn = v); });
+    _purchasePin.isEnabled().then((v) { if (mounted) setState(() => _purchaseFingerprintOn = v); });
   }
 
   Future<void> _loadUser() async {
@@ -83,7 +90,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     if (!canAuth) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Ba a samu fingerprint/face da aka yi rajista akan wannan waya ba. Je Settings na waya don kunna fingerprint tukuna.'),
+        content: Text('No fingerprint or face is enrolled on this phone. Go to your phone Settings to set one up first.'),
       ));
       return;
     }
@@ -94,7 +101,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     if (!valid) {
       setState(() => _biometricBusy = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('PIN ba daidai ba.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incorrect PIN.')));
       return;
     }
     try {
@@ -103,7 +110,38 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     } catch (e) {
       setState(() => _biometricBusy = false);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('An kasa kunna fingerprint: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not enable fingerprint: $e')));
+    }
+  }
+
+  Future<void> _onPurchaseFingerprintToggle(bool wantOn) async {
+    if (!wantOn) {
+      await _purchasePin.disable();
+      setState(() => _purchaseFingerprintOn = false);
+      return;
+    }
+    final canAuth = await _purchasePin.canUseBiometrics();
+    if (!canAuth) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('No fingerprint or face is enrolled on this phone. Go to your phone Settings to set one up first.'),
+      ));
+      return;
+    }
+    final pin = await _promptForPin();
+    if (pin == null) return; // canceled
+    setState(() => _purchaseFingerprintBusy = true);
+    final valid = await _lock.verifyPin(pin);
+    if (!valid) {
+      setState(() => _purchaseFingerprintBusy = false);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incorrect PIN.')));
+      return;
+    }
+    final ok = await _purchasePin.enable(pin); // itself prompts for a fingerprint scan
+    setState(() { _purchaseFingerprintOn = ok; _purchaseFingerprintBusy = false; });
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not enable fingerprint')));
     }
   }
 
@@ -112,10 +150,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     return showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Shigar da PIN dinku'),
+        title: const Text('Enter your PIN'),
         content: TextField(
           controller: ctrl, obscureText: true, maxLength: 4, keyboardType: TextInputType.number,
-          decoration: const InputDecoration(labelText: 'Transaction PIN'),
+          decoration: InputDecoration(labelText: tr('Transaction PIN')),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
@@ -175,11 +213,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 children: [
                   const Text('Change Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 12),
-                  TextField(controller: _currentPasswordCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Current Password', border: OutlineInputBorder())),
+                  TextField(controller: _currentPasswordCtrl, obscureText: true, decoration: InputDecoration(labelText: tr('Current Password'), border: OutlineInputBorder())),
                   const SizedBox(height: 10),
-                  TextField(controller: _newPasswordCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'New Password', border: OutlineInputBorder())),
+                  TextField(controller: _newPasswordCtrl, obscureText: true, decoration: InputDecoration(labelText: tr('New Password'), border: OutlineInputBorder())),
                   const SizedBox(height: 10),
-                  TextField(controller: _confirmPasswordCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Confirm New Password', border: OutlineInputBorder())),
+                  TextField(controller: _confirmPasswordCtrl, obscureText: true, decoration: InputDecoration(labelText: tr('Confirm New Password'), border: OutlineInputBorder())),
                   const SizedBox(height: 12),
                   FilledButton(
                     onPressed: _passwordBusy ? null : _changePassword,
@@ -200,10 +238,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   const SizedBox(height: 6),
                   const Text('Your PIN confirms transactions. Enter your password to set a new one.', style: TextStyle(fontSize: 12.5)),
                   const SizedBox(height: 12),
-                  TextField(controller: _currentPasswordForPinCtrl, obscureText: true, decoration: const InputDecoration(labelText: 'Current Password', border: OutlineInputBorder())),
+                  TextField(controller: _currentPasswordForPinCtrl, obscureText: true, decoration: InputDecoration(labelText: tr('Current Password'), border: OutlineInputBorder())),
                   const SizedBox(height: 10),
-                  TextField(controller: _newPinCtrl, obscureText: true, maxLength: 4, decoration: const InputDecoration(labelText: 'New PIN (4 digits)', border: OutlineInputBorder())),
-                  TextField(controller: _confirmPinCtrl, obscureText: true, maxLength: 4, decoration: const InputDecoration(labelText: 'Confirm New PIN', border: OutlineInputBorder())),
+                  TextField(controller: _newPinCtrl, obscureText: true, maxLength: 4, decoration: InputDecoration(labelText: tr('New PIN (4 digits)'), border: OutlineInputBorder())),
+                  TextField(controller: _confirmPinCtrl, obscureText: true, maxLength: 4, decoration: InputDecoration(labelText: tr('Confirm New PIN'), border: OutlineInputBorder())),
                   const SizedBox(height: 8),
                   FilledButton(
                     onPressed: _pinBusy ? null : _changePin,
@@ -222,16 +260,25 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 children: [
                   const Text('Security', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 6),
-                  const Text('App din zai kulle bayan mintuna 5 na rashin aiki dashi. Kunna fingerprint don sauri budewa maimakon rubuta PIN.', style: TextStyle(fontSize: 12.5)),
+                  const Text('The app locks after 5 minutes of inactivity. Enable fingerprint to unlock quickly instead of typing your PIN.', style: TextStyle(fontSize: 12.5)),
                   const SizedBox(height: 8),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Fingerprint Unlock'),
-                    subtitle: const Text('Idan aka canza fingerprint akan wayan, sai an sake kunna wannan da PIN.', style: TextStyle(fontSize: 11.5)),
+                    subtitle: const Text('If the fingerprints on this phone change, you will need to re-enable this with your PIN.', style: TextStyle(fontSize: 11.5)),
                     value: _biometricOn,
                     onChanged: _biometricBusy ? null : _onBiometricToggle,
                   ),
                   if (_biometricBusy) const Padding(padding: EdgeInsets.only(top: 4), child: LinearProgressIndicator()),
+                  const Divider(height: 28),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Fingerprint for Purchases'),
+                    subtitle: const Text('Confirm purchases with your fingerprint instead of typing your transaction PIN.', style: TextStyle(fontSize: 11.5)),
+                    value: _purchaseFingerprintOn,
+                    onChanged: _purchaseFingerprintBusy ? null : _onPurchaseFingerprintToggle,
+                  ),
+                  if (_purchaseFingerprintBusy) const Padding(padding: EdgeInsets.only(top: 4), child: LinearProgressIndicator()),
                 ],
               ),
             ),

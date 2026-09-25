@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import '../l10n.dart' show tr;
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -108,7 +109,7 @@ class LockService {
   /// Throws if the scan itself fails or is canceled.
   Future<void> enableBiometric() async {
     final result = await _localAuth.authenticate(
-      localizedReason: 'Tabbatar da yatsanka don kunna fingerprint unlock',
+      localizedReason: tr('Confirm your fingerprint to enable fingerprint unlock'),
       options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
     );
     if (!result) {
@@ -132,7 +133,7 @@ class LockService {
     if (!await biometricEnabled) return BiometricUnlockResult.invalidated;
     try {
       final ok = await _localAuth.authenticate(
-        localizedReason: 'Shigar da yatsanka don bude app din',
+        localizedReason: tr('Use your fingerprint to unlock the app'),
         options: const AuthenticationOptions(biometricOnly: true, stickyAuth: false),
       );
       if (ok) {

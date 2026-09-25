@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import 'dashboard_screen.dart';
@@ -17,6 +18,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirm = TextEditingController();
+  final _referralCode = TextEditingController();
   bool _loading = false;
   String? _error;
 
@@ -29,6 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       email: _email.text.trim(),
       password: _password.text,
       confirmPassword: _confirm.text,
+      referralCode: _referralCode.text.trim(),
     );
     setState(() => _loading = false);
     if (res['success'] == true) {
@@ -46,7 +49,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           controller: c,
           obscureText: obscure,
           keyboardType: type,
-          decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+          decoration: InputDecoration(labelText: tr(label), border: const OutlineInputBorder()),
         ),
       );
 
@@ -68,6 +71,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _field(_email, 'Email', type: TextInputType.emailAddress),
             _field(_password, 'Password', obscure: true),
             _field(_confirm, 'Confirm Password', obscure: true),
+            _field(_referralCode, 'Referral Code (optional)'),
             const SizedBox(height: 8),
             FilledButton(
               onPressed: _loading ? null : _submit,

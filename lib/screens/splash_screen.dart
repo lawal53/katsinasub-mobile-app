@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
 
 /// The first thing anyone sees when opening the app. Shows for a
 /// couple of seconds with the brand mark, then calls [onFinished] to
@@ -26,7 +27,13 @@ class _SplashScreenState extends State<SplashScreen> {
     return Scaffold(
       backgroundColor: navy,
       body: SafeArea(
-        child: Column(
+        // SizedBox(width: infinity) makes the Column span the full screen
+        // width — without it the Column shrinks to its widest child and
+        // sits at the left side instead of the centre.
+        child: SizedBox(
+          width: double.infinity,
+          child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             const Spacer(flex: 3),
             // Uses assets/logo.png if you've added it (see pubspec.yaml
@@ -37,24 +44,27 @@ class _SplashScreenState extends State<SplashScreen> {
             // image itself, so the full logo artwork always shows —
             // cover + a large border radius was clipping the design's
             // corner details.
-            Image.asset(
-              'assets/logo.png',
-              width: 110, height: 110, fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 110, height: 110,
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20)),
-                alignment: Alignment.center,
-                child: const Text('KS', style: TextStyle(color: navy, fontSize: 34, fontWeight: FontWeight.bold)),
+            Center(
+              child: Image.asset(
+                'assets/logo.png',
+                width: 240, height: 240, fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  width: 240, height: 240,
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(28)),
+                  alignment: Alignment.center,
+                  child: const Text('KS', style: TextStyle(color: navy, fontSize: 48, fontWeight: FontWeight.bold)),
+                ),
               ),
             ),
             const SizedBox(height: 24),
-            const Text('Katsinasub', style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
+            const Text('Katsinasub', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             const Spacer(flex: 4),
             const Padding(
               padding: EdgeInsets.only(bottom: 20),
-              child: Text('Dev. By Ks. D. S. Ltd', style: TextStyle(color: Colors.white54, fontSize: 13)),
+              child: Text('Dev. By Ks. D. S. Ltd', style: TextStyle(color: Colors.white54, fontSize: 13), textAlign: TextAlign.center),
             ),
           ],
+        ),
         ),
       ),
     );

@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
+import '../widgets/pin_field.dart';
+import '../purchase_result.dart';
 import '../services/api_service.dart';
 
 class BuyCableScreen extends StatefulWidget {
@@ -59,8 +62,7 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
     );
     setState(() => _busy = false);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Done')));
-    if (res['success'] == true) Navigator.pop(context);
+    await showPurchaseResult(context, res);
   }
 
   @override
@@ -89,7 +91,7 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
             const SizedBox(height: 12),
             TextField(
               controller: _smartcardCtrl,
-              decoration: const InputDecoration(labelText: 'Smartcard/IUC Number', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: tr('Smartcard/IUC Number'), border: OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
             FilledButton(
@@ -130,14 +132,10 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
             TextField(
               controller: _phoneCtrl,
               keyboardType: TextInputType.phone,
-              decoration: const InputDecoration(labelText: 'Phone Number', hintText: '08012345678', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: tr('Phone Number'), hintText: tr('08012345678'), border: OutlineInputBorder()),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _pinCtrl,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Transaction PIN', border: OutlineInputBorder()),
-            ),
+            PinField(controller: _pinCtrl),
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _busy ? null : _pay,

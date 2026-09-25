@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import 'l10n.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'services/api_service.dart';
@@ -29,6 +30,7 @@ Future<void> main() async {
     // Firebase not configured yet — everything else in the app still works.
   }
 
+  await AppLang.load();
   runApp(const VtuApp());
 }
 

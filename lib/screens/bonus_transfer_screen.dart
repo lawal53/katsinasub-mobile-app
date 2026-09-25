@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
 import '../services/api_service.dart';
 
 class BonusTransferScreen extends StatefulWidget {
@@ -66,7 +67,7 @@ class _BonusTransferScreenState extends State<BonusTransferScreen> {
             TextField(
               controller: _amountCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Amount', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: tr('Amount'), border: OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
             FilledButton(

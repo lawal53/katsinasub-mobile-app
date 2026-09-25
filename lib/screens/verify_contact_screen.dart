@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
 import '../services/api_service.dart';
 
 /// Handles both Email and Phone verification — same two-step flow
@@ -67,7 +68,7 @@ class _VerifyContactScreenState extends State<VerifyContactScreen> {
               TextField(
                 controller: _codeCtrl,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Enter code', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: tr('Enter code'), border: OutlineInputBorder()),
               ),
               const SizedBox(height: 16),
               FilledButton(

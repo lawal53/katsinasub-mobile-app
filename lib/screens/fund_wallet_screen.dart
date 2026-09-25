@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import 'checkout_webview_screen.dart';
 
@@ -74,6 +76,27 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
     }
   }
 
+  Future<void> _createVirtualAccountBillstack() async {
+    setState(() => _busy = true);
+    final res = await _api.createVirtualAccountBillstack();
+    setState(() => _busy = false);
+    if (!mounted) return;
+    if (res['success'] == true) {
+      _load();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Failed')));
+    }
+  }
+
+  Future<void> _openWhatsApp(String number, String message) async {
+    final uri = Uri.parse('https://wa.me/${number.replaceAll(RegExp(r'[^0-9]'), '')}?text=${Uri.encodeComponent(message)}');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp.')));
+    }
+  }
+
   void _copy(String text) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied')));
@@ -83,6 +106,7 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
   Widget build(BuildContext context) {
     if (_info == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final va = _info!['virtual_account'];
+    final va2 = _info!['virtual_account_2'];
     final manual = _info!['manual_fund'];
 
     return Scaffold(
@@ -90,10 +114,10 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          if (_info!['paystack_enabled'] == true || _info!['monnify_enabled'] == true) ...[
+          if (_info!['monnify_enabled'] == true) ...[
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(12),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -102,15 +126,11 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
                     TextField(
                       controller: _amountCtrl,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(labelText: 'Amount (₦)', border: OutlineInputBorder()),
+                      decoration: InputDecoration(labelText: tr('Amount (₦)'), border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
-                    if (_info!['paystack_enabled'] == true)
-                      FilledButton(onPressed: _busy ? null : () => _pay('paystack'), child: const Text('Pay with Paystack')),
-                    if (_info!['monnify_enabled'] == true) ...[
-                      const SizedBox(height: 8),
-                      OutlinedButton(onPressed: _busy ? null : () => _pay('monnify'), child: const Text('Pay with Monnify')),
-                    ],
+                    if (_info!['monnify_enabled'] == true)
+                      FilledButton(onPressed: _busy ? null : () => _pay('monnify'), child: const Text('Pay with Card (Monnify)')),
                     if (_busy) const Padding(padding: EdgeInsets.only(top: 10), child: Center(child: CircularProgressIndicator())),
                   ],
                 ),
@@ -134,6 +154,17 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
                     _row('Account Name', va['account_name']),
                   ] else
                     FilledButton(onPressed: _busy ? null : _createVirtualAccount, child: const Text('Generate My Account Number')),
+                  if (_info!['billstack_enabled'] == true) ...[
+                    const Divider(height: 24),
+                    const Text('Your Second Account Number', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 8),
+                    if (va2 != null) ...[
+                      _row('Bank', va2['bank_name']),
+                      _row('Account Number', va2['account_number'], copyable: true),
+                      _row('Account Name', va2['account_name']),
+                    ] else
+                      OutlinedButton(onPressed: _busy ? null : _createVirtualAccountBillstack, child: const Text('Generate My Second Account Number')),
+                  ],
                 ],
               ),
             ),
@@ -153,6 +184,18 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
                     _row('Account Name', manual['account_name']),
                     const SizedBox(height: 10),
                     const Text('After sending, contact support via WhatsApp with your receipt.', style: TextStyle(fontSize: 12.5)),
+                    if (manual['whatsapp_number'] != null && '${manual['whatsapp_number']}'.isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF25D366)),
+                        onPressed: () => _openWhatsApp(
+                          '${manual['whatsapp_number']}',
+                          'Hello, I just sent money to ${manual['account_name']} (${manual['account_number']}). My username is __ and email is __.',
+                        ),
+                        icon: const Icon(Icons.chat),
+                        label: const Text('Send Receipt via WhatsApp'),
+                      ),
+                    ],
                   ] else
                     const Text('Admin has not configured Manual Fund details yet.', style: TextStyle(color: Colors.grey)),
                 ],

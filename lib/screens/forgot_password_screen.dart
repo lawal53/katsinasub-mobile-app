@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
 import '../services/api_service.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
@@ -58,7 +59,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               controller: _emailCtrl,
               enabled: !_codeSent,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder()),
+              decoration: InputDecoration(labelText: tr('Email'), border: OutlineInputBorder()),
             ),
             const SizedBox(height: 16),
             if (!_codeSent)
@@ -70,19 +71,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               TextField(
                 controller: _codeCtrl,
                 keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: 'Code from email', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: tr('Code from email'), border: OutlineInputBorder()),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _passwordCtrl,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'New Password', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: tr('New Password'), border: OutlineInputBorder()),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _confirmCtrl,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'Confirm New Password', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: tr('Confirm New Password'), border: OutlineInputBorder()),
               ),
               const SizedBox(height: 16),
               FilledButton(

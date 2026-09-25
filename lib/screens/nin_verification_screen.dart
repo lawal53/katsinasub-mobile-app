@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
+import '../widgets/pin_field.dart';
 import '../services/api_service.dart';
 import 'identity_history_screen.dart';
 
@@ -51,7 +53,7 @@ class _NinVerificationScreenState extends State<NinVerificationScreen> {
       appBar: AppBar(title: const Text('NIN Verification'), actions: [
         IconButton(
           icon: const Icon(Icons.history),
-          tooltip: 'Verification History',
+          tooltip: tr('Verification History'),
           onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const IdentityHistoryScreen())),
         ),
       ]),
@@ -92,11 +94,7 @@ class _NinVerificationScreenState extends State<NinVerificationScreen> {
             decoration: InputDecoration(labelText: _method == 'phone' ? 'Phone Number' : 'NIN Number (11 digits)', border: const OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _pinCtrl,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Transaction PIN', border: OutlineInputBorder()),
-          ),
+          PinField(controller: _pinCtrl),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _busy ? null : _submit,

@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
 import '../services/lock_service.dart';
 import '../services/api_service.dart';
 import '../main.dart' show rootNavigatorKey;
@@ -70,7 +71,7 @@ class _LockScreenState extends State<LockScreen> {
     if (ok) {
       _lock.unlock();
     } else {
-      setState(() { _checking = false; _pin = ''; _error = 'PIN ba daidai ba, sake gwada.'; });
+      setState(() { _checking = false; _pin = ''; _error = 'Incorrect PIN, try again.'; });
     }
   }
 
@@ -96,9 +97,9 @@ class _LockScreenState extends State<LockScreen> {
               children: [
                 const Icon(Icons.lock, color: emerald, size: 48),
                 const SizedBox(height: 12),
-                const Text('An kulle app din', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text('App Locked', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 6),
-                const Text('Shigar da PIN dinku don ci gaba', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                const Text('Enter your PIN to continue', style: TextStyle(color: Colors.white70, fontSize: 13)),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -120,7 +121,7 @@ class _LockScreenState extends State<LockScreen> {
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: _logoutInstead,
-                  child: const Text('Fita (Logout)', style: TextStyle(color: Colors.white54)),
+                  child: const Text('Log out', style: TextStyle(color: Colors.white54)),
                 ),
               ],
             ),

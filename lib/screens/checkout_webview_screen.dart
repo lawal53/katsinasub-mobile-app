@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 /// A general-purpose in-app browser. Used for Fund Wallet checkout

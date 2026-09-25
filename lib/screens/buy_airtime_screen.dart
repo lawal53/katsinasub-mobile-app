@@ -1,4 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
+import '../widgets/pin_field.dart';
+import '../purchase_result.dart';
 import '../services/api_service.dart';
 
 class BuyAirtimeScreen extends StatefulWidget {
@@ -78,8 +81,7 @@ class _BuyAirtimeScreenState extends State<BuyAirtimeScreen> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Done')));
-    if (res['success'] == true) Navigator.pop(context);
+    await showPurchaseResult(context, res);
   }
 
   @override
@@ -104,20 +106,16 @@ class _BuyAirtimeScreenState extends State<BuyAirtimeScreen> {
           TextField(
             controller: _phoneCtrl,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Phone Number', hintText: '08012345678', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: tr('Phone Number'), hintText: tr('08012345678'), border: OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
           TextField(
             controller: _amountCtrl,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Airtime Amount (₦)', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: tr('Airtime Amount (₦)'), border: OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _pinCtrl,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Transaction PIN', border: OutlineInputBorder()),
-          ),
+          PinField(controller: _pinCtrl),
           const SizedBox(height: 16),
           Card(
             color: Theme.of(context).colorScheme.secondaryContainer,

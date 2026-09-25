@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import 'wallet_summary_screen.dart';
@@ -18,6 +20,7 @@ import 'referral_screen.dart';
 import 'notifications_screen.dart';
 import 'fund_wallet_screen.dart';
 import 'checkout_webview_screen.dart';
+import 'fund_wallet_screen.dart';
 import 'support_menu.dart';
 import 'login_screen.dart';
 
@@ -32,11 +35,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Map<String, dynamic>? _user;
   bool _loading = true;
   bool _balanceHidden = false;
+  static const _hideKey = 'balance_hidden';
+  static const _secure = FlutterSecureStorage();
 
   @override
   void initState() {
     super.initState();
+    _restoreBalanceHidden();
     _load();
+  }
+
+  // The hide/show choice survives closing and reopening the app: once the
+  // balance is hidden it stays hidden until the customer reveals it.
+  Future<void> _restoreBalanceHidden() async {
+    try {
+      final v = await _secure.read(key: _hideKey);
+      if (mounted && v == '1') setState(() => _balanceHidden = true);
+    } catch (_) {}
+  }
+
+  Future<void> _toggleBalanceHidden() async {
+    setState(() => _balanceHidden = !_balanceHidden);
+    try { await _secure.write(key: _hideKey, value: _balanceHidden ? '1' : '0'); } catch (_) {}
   }
 
   Future<void> _load() async {
@@ -96,7 +116,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           FloatingActionButton(
             onPressed: () => showSupportMenu(context),
-            tooltip: 'Get Help',
+            tooltip: tr('Get Help'),
             child: const Icon(Icons.chat_bubble_outline),
           ),
           if (((_user?['unread_chat'] ?? 0) as int) > 0)
@@ -125,7 +145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const Text('Wallet Balance'),
                         const SizedBox(width: 6),
                         InkWell(
-                          onTap: () => setState(() => _balanceHidden = !_balanceHidden),
+                          onTap: _toggleBalanceHidden,
                           child: Icon(_balanceHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 16),
                         ),
                       ],
@@ -153,6 +173,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 20),
+            _buildQuickFundAndTier(),
             const SizedBox(height: 20),
             const Text('Services', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -182,12 +204,76 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 _serviceTile(Icons.currency_exchange, 'Airtime2Cash', () => _openAndRefresh(const AirtimeToCashScreen())),
                 _serviceTile(Icons.card_giftcard, 'Bonus Transfer', () => _openAndRefresh(const BonusTransferScreen())),
                 _serviceTile(Icons.share, 'Referral', () => _openAndRefresh(const ReferralScreen())),
+                _serviceTile(Icons.history, 'History', () => _openAndRefresh(const WalletSummaryScreen())),
               ],
               );
             }),
           ],
         ),
       ),
+    );
+  }
+
+  // Same colourful icons the website dashboard uses.
+  static const Map<String, String> _emojiIcons = {
+    'Data': '📶', 'Airtime': '📱', 'Cable TV': '📺', 'Electricity': '💡',
+    'Exam Pins': '🎓', 'Bulk SMS': '💬', 'NIN Verify': '🆔', 'BVN Verify': '🏦',
+    'Recharge Card': '🖨️', 'Data Card': '🖨️', 'Airtime2Cash': '💵',
+    'Bonus Transfer': '🎁', 'Referral': '👥', 'History': '🧾',
+  };
+
+
+  // Small "Payment Methods" + "Current Package" summary — same info the
+  // website shows on its dashboard, kept compact rather than as a big card.
+  Widget _buildQuickFundAndTier() {
+    final tier = '${_user?['account_type'] ?? 'regular'}';
+    final tierDesc = tier == 'api'
+        ? "You're on the API tier — you get the best pricing across the platform."
+        : tier == 'agent'
+            ? "You're on the Agent tier — you enjoy discounted pricing compared to regular users."
+            : "You're on the Regular tier. Upgrade your account to enjoy more discounts.";
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _openAndRefresh(const FundWalletScreen()),
+                icon: const Icon(Icons.credit_card, size: 18),
+                label: const Text('Pay with Card'),
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 10)),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: () => _openAndRefresh(const FundWalletScreen()),
+                icon: const Icon(Icons.account_balance, size: 18),
+                label: const Text('Bank Transfer'),
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 10)),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Current Package: ${tier.toUpperCase()}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 4),
+              Text(tierDesc, style: const TextStyle(fontSize: 12)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -201,7 +287,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 26),
+              _emojiIcons.containsKey(label)
+                  ? Text(_emojiIcons[label]!, style: const TextStyle(fontSize: 26))
+                  : Icon(icon, size: 26),
               const SizedBox(height: 6),
               Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 11)),
             ],
@@ -227,13 +315,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             ListTile(
+              leading: const Icon(Icons.language),
+              title: const Text('Language'),
+              onTap: () async { Navigator.pop(context); await showLanguagePicker(context); if (mounted) setState(() {}); },
+            ),
+            ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Account Settings'),
               onTap: () { Navigator.pop(context); _openAndRefresh(const AccountSettingsScreen()); },
             ),
             ListTile(
               leading: const Icon(Icons.receipt_long),
-              title: const Text('Wallet Summary'),
+              title: const Text('Transaction History'),
               onTap: () { Navigator.pop(context); _openAndRefresh(const WalletSummaryScreen()); },
             ),
             ListTile(

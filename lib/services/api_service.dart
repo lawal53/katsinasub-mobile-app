@@ -106,9 +106,17 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
-  Future<Map<String, dynamic>> walletSummary({int page = 1}) async {
+  Future<Map<String, dynamic>> receipt(String reference) async {
     final res = await http.get(
-      Uri.parse('$baseUrl/wallet-summary.php?page=$page'),
+      Uri.parse('$baseUrl/receipt.php?ref=${Uri.encodeQueryComponent(reference)}'),
+      headers: await _authHeaders(),
+    );
+    return jsonDecode(res.body);
+  }
+
+  Future<Map<String, dynamic>> walletSummary({int page = 1, String category = 'all'}) async {
+    final res = await http.get(
+      Uri.parse('$baseUrl/wallet-summary.php?page=$page&category=$category'),
       headers: await _authHeaders(),
     );
     return jsonDecode(res.body);
@@ -338,6 +346,12 @@ class ApiService {
   Future<Map<String, dynamic>> createVirtualAccount() async {
     final res = await http.post(Uri.parse('$baseUrl/fund-wallet.php'), headers: await _authHeaders(),
         body: jsonEncode({'action': 'create_virtual_account'}));
+    return jsonDecode(res.body);
+  }
+
+  Future<Map<String, dynamic>> createVirtualAccountBillstack() async {
+    final res = await http.post(Uri.parse('$baseUrl/fund-wallet.php'), headers: await _authHeaders(),
+        body: jsonEncode({'action': 'create_virtual_account_billstack'}));
     return jsonDecode(res.body);
   }
 

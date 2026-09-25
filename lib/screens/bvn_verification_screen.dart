@@ -1,4 +1,6 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
+import '../widgets/pin_field.dart';
 import '../services/api_service.dart';
 import 'identity_history_screen.dart';
 
@@ -45,7 +47,7 @@ class _BvnVerificationScreenState extends State<BvnVerificationScreen> {
       appBar: AppBar(title: const Text('BVN Verification'), actions: [
         IconButton(
           icon: const Icon(Icons.history),
-          tooltip: 'Verification History',
+          tooltip: tr('Verification History'),
           onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const IdentityHistoryScreen())),
         ),
       ]),
@@ -55,14 +57,10 @@ class _BvnVerificationScreenState extends State<BvnVerificationScreen> {
           TextField(
             controller: _bvnCtrl,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'BVN Number (11 digits)', border: OutlineInputBorder()),
+            decoration: InputDecoration(labelText: tr('BVN Number (11 digits)'), border: OutlineInputBorder()),
           ),
           const SizedBox(height: 12),
-          TextField(
-            controller: _pinCtrl,
-            obscureText: true,
-            decoration: const InputDecoration(labelText: 'Transaction PIN', border: OutlineInputBorder()),
-          ),
+          PinField(controller: _pinCtrl),
           const SizedBox(height: 16),
           FilledButton(
             onPressed: _busy ? null : _submit,

@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import 'register_screen.dart';
@@ -51,13 +52,13 @@ class _LoginScreenState extends State<LoginScreen> {
               ],
               TextField(
                 controller: _loginIdCtrl,
-                decoration: const InputDecoration(labelText: 'Email or Username', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: tr('Email or Username'), border: OutlineInputBorder()),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _passwordCtrl,
                 obscureText: true,
-                decoration: const InputDecoration(labelText: 'Password', border: OutlineInputBorder()),
+                decoration: InputDecoration(labelText: tr('Password'), border: OutlineInputBorder()),
               ),
               const SizedBox(height: 20),
               FilledButton(
@@ -72,6 +73,11 @@ class _LoginScreenState extends State<LoginScreen> {
               TextButton(
                 onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RegisterScreen())),
                 child: const Text("Don't have an account? Create one"),
+              ),
+              TextButton.icon(
+                onPressed: () async { await showLanguagePicker(context); if (mounted) setState(() {}); },
+                icon: const Icon(Icons.language),
+                label: const Text('Language'),
               ),
             ],
           ),

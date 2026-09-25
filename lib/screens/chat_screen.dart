@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide Text;
+import '../l10n.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 
@@ -203,13 +204,13 @@ class _ChatScreenState extends State<ChatScreen> {
                     children: [
                       IconButton(
                         icon: const Icon(Icons.attach_file),
-                        tooltip: 'Attach a photo, screenshot, or PDF',
+                        tooltip: tr('Attach a photo, screenshot, or PDF'),
                         onPressed: _sending ? null : _pickAttachment,
                       ),
                       Expanded(
                         child: TextField(
                           controller: _messageCtrl,
-                          decoration: const InputDecoration(hintText: 'Type a message...', border: OutlineInputBorder()),
+                          decoration: InputDecoration(hintText: tr('Type a message...'), border: OutlineInputBorder()),
                           onSubmitted: (_) => _send(),
                         ),
                       ),
