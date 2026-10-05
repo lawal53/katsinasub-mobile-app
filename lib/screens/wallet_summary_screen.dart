@@ -101,7 +101,7 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
                     controller: _searchCtrl,
                     textInputAction: TextInputAction.search,
                     decoration: InputDecoration(
-                      hintText: tr('Search description or reference...'),
+                      hintText: tr('Search by description, phone number, reference...'),
                       prefixIcon: const Icon(Icons.search),
                       border: const OutlineInputBorder(),
                       isDense: true,

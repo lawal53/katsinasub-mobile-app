@@ -225,23 +225,10 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
                   const SizedBox(height: 6),
                   const Text('Get your own account number — any transfer to it funds your wallet automatically.', style: TextStyle(fontSize: 12.5)),
                   const SizedBox(height: 12),
-                  // "Your Account Number" is BillStack (second: true); the
-                  // PaymentPoint one (second: false) is shown below as
-                  // "Your Second Account Number" — this order matches the
+                  // "Your Account Number" is PaymentPoint (second: false);
+                  // BillStack (second: true) is shown below as "Your
+                  // Second Account Number" — this order matches the
                   // website's dashboard.
-                  if (va2 != null) ...[
-                    _row('Bank', va2['bank_name']),
-                    _row('Account Number', va2['account_number'], copyable: true),
-                    _row('Account Name', va2['account_name']),
-                    _row('Charges', _info!['virtual_account_2_charge_label']),
-                  ] else if (_info!['billstack_enabled'] == true) ...[
-                    _row('Charges', _info!['virtual_account_2_charge_label']),
-                    const SizedBox(height: 8),
-                    FilledButton(onPressed: _busy ? null : () => _generateAccount(second: true), child: const Text('Generate My Account Number')),
-                  ],
-                  const Divider(height: 24),
-                  const Text('Your Second Account Number', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  const SizedBox(height: 8),
                   if (va != null) ...[
                     _row('Bank', va['bank_name']),
                     _row('Account Number', va['account_number'], copyable: true),
@@ -250,7 +237,20 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
                   ] else ...[
                     _row('Charges', _info!['virtual_account_charge_label']),
                     const SizedBox(height: 8),
-                    OutlinedButton(onPressed: _busy ? null : () => _generateAccount(second: false), child: const Text('Generate My Second Account Number')),
+                    FilledButton(onPressed: _busy ? null : () => _generateAccount(second: false), child: const Text('Generate My Account Number')),
+                  ],
+                  const Divider(height: 24),
+                  const Text('Your Second Account Number', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  const SizedBox(height: 8),
+                  if (va2 != null) ...[
+                    _row('Bank', va2['bank_name']),
+                    _row('Account Number', va2['account_number'], copyable: true),
+                    _row('Account Name', va2['account_name']),
+                    _row('Charges', _info!['virtual_account_2_charge_label']),
+                  ] else if (_info!['billstack_enabled'] == true) ...[
+                    _row('Charges', _info!['virtual_account_2_charge_label']),
+                    const SizedBox(height: 8),
+                    OutlinedButton(onPressed: _busy ? null : () => _generateAccount(second: true), child: const Text('Generate My Second Account Number')),
                   ],
                 ],
               ),

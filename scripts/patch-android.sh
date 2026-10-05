@@ -56,25 +56,19 @@ echo "==> Setting Android app icon from assets/logo.png ..."
 # icon into every mipmap-*/ic_launcher.png — nothing else replaces it,
 # so without this the app installs with the generic Flutter icon
 # instead of the real logo, regardless of what's used inside the app.
+#
+# This used to shell out to ImageMagick (`convert`/`magick`), which
+# silently fell back to a WARNING and left the default icon in place
+# whenever that binary wasn't on the runner's PATH — which is exactly
+# what was happening (the logo never appeared, with no build failure
+# to notice). flutter_launcher_icons (already a dev_dependency in
+# pubspec.yaml) does the same job as a Dart tool bundled with Flutter
+# itself, so it always works on any runner that can run Flutter at
+# all — no external system binary required.
 if [ -f "assets/logo.png" ]; then
-  CONVERT_CMD=""
-  if command -v convert >/dev/null 2>&1; then
-    CONVERT_CMD="convert"
-  elif command -v magick >/dev/null 2>&1; then
-    CONVERT_CMD="magick"
-  fi
-  if [ -n "$CONVERT_CMD" ]; then
-    for pair in "mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192"; do
-      density="${pair%%:*}"
-      size="${pair##*:}"
-      dir="android/app/src/main/res/mipmap-${density}"
-      mkdir -p "$dir"
-      "$CONVERT_CMD" assets/logo.png -resize "${size}x${size}" -background white -gravity center -extent "${size}x${size}" "$dir/ic_launcher.png"
-    done
-    echo "==> App icon replaced for all densities."
-  else
-    echo "WARNING: ImageMagick not found on this runner — app icon left as the default Flutter icon."
-  fi
+  flutter pub get
+  dart run flutter_launcher_icons -f pubspec.yaml
+  echo "==> App icon replaced for all densities (via flutter_launcher_icons)."
 else
   echo "WARNING: assets/logo.png not found — app icon left as the default Flutter icon."
 fi
