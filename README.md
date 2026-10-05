@@ -11,8 +11,8 @@ using the exact same accounts as the website.
 |---|---|
 | Website domain | `katsinasub.com` |
 | Mobile API base URL (already set in the code) | `https://katsinasub.com/api/v1/mobile` |
-| Android package name | `com.kstsinasub.app` |
-| Firebase Project ID | `kstsinasub` |
+| Android package name | `com.katsinasub.app` |
+| Firebase Project ID | `katsinasub` |
 | Firebase Android app registered? | ✅ Yes (`google-services.json` already downloaded) |
 | Firebase Service Account JSON | ✅ Already pasted into Admin → Settings |
 | Database migrations run? | ✅ Yes (`api_tokens`, `device_tokens` tables exist) |
@@ -25,7 +25,7 @@ before building.
 
 1. Open a terminal (Command Prompt) and run:
    ```
-   flutter create --org com.kstsinasub vtu_mobile_app
+   flutter create --org com.katsinasub vtu_mobile_app
    cd vtu_mobile_app
    ```
 2. Copy `pubspec.yaml` and the whole `lib/` folder from this package
@@ -34,7 +34,7 @@ before building.
 3. Open `android/app/build.gradle` and find the line starting with
    `applicationId`. Make sure it reads exactly:
    ```
-   applicationId "com.kstsinasub.app"
+   applicationId "com.katsinasub.app"
    ```
 4. Copy the `google-services.json` file (downloaded earlier from
    Firebase) into `android/app/google-services.json` (same folder as
@@ -49,7 +49,28 @@ before building.
    ```
    apply plugin: 'com.google.gms.google-services'
    ```
-7. **Fingerprint unlock needs two small native edits** (skip this step
+7. **App name and icon** — `flutter create` names the app after the
+   folder (`vtu_mobile_app`) and gives it the default Flutter icon.
+
+   **If you're building through the GitHub Actions pipeline** (see
+   SETUP-GITHUB-CI.md) — this is already handled for you automatically
+   by `scripts/patch-android.sh`, which every build runs: it generates
+   the real launcher icon from `assets/logo.png` and sets the app's
+   display name to "Katsinasub" in `AndroidManifest.xml` (and
+   `ios/Runner/Info.plist`, if building for iOS). Nothing to do here —
+   just push and let the workflow build.
+
+   **If you're building locally instead** (ran `flutter create .`
+   yourself, no CI), do the same two things by hand: run
+   `flutter pub get` then `dart run flutter_launcher_icons` for the
+   icon (reads `assets/logo.png`), and in
+   `android/app/src/main/AndroidManifest.xml` change
+   `android:label="vtu_mobile_app"` to `android:label="Katsinasub"`.
+
+   Either way, **uninstall any previous build from the phone first**
+   before installing the new one — Android caches the old icon/name for
+   the same package otherwise.
+8. **Fingerprint unlock needs two small native edits** (skip this step
    and fingerprint just won't be offered — everything else, including
    the 5-minute PIN lock, still works without it):
    - Open `android/app/src/main/kotlin/.../MainActivity.kt` and make it

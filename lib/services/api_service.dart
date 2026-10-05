@@ -114,9 +114,9 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
-  Future<Map<String, dynamic>> walletSummary({int page = 1, String category = 'all'}) async {
+  Future<Map<String, dynamic>> walletSummary({int page = 1, String category = 'all', String q = ''}) async {
     final res = await http.get(
-      Uri.parse('$baseUrl/wallet-summary.php?page=$page&category=$category'),
+      Uri.parse('$baseUrl/wallet-summary.php?page=$page&category=$category&q=${Uri.encodeQueryComponent(q)}'),
       headers: await _authHeaders(),
     );
     return jsonDecode(res.body);
@@ -262,7 +262,40 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
+  // ---- Transfer To Katsinasub User ----
+  Future<Map<String, dynamic>> transfer({required String identifier, required double amount, required String transactionPin}) async {
+    final res = await http.post(Uri.parse('$baseUrl/transfer.php'), headers: await _authHeaders(),
+        body: jsonEncode({'identifier': identifier, 'amount': amount, 'transaction_pin': transactionPin}));
+    return jsonDecode(res.body);
+  }
+
+  Future<Map<String, dynamic>> transferHistory() async {
+    final res = await http.get(Uri.parse('$baseUrl/transfer-history.php'), headers: await _authHeaders());
+    return jsonDecode(res.body);
+  }
+
+  Future<Map<String, dynamic>> lookupTransferRecipient(String query) async {
+    final res = await http.get(Uri.parse('$baseUrl/lookup-transfer-recipient.php?q=${Uri.encodeComponent(query)}'), headers: await _authHeaders());
+    return jsonDecode(res.body);
+  }
+
+  Future<Map<String, dynamic>> transferLimitRequests() async {
+    final res = await http.get(Uri.parse('$baseUrl/transfer-limit-request.php'), headers: await _authHeaders());
+    return jsonDecode(res.body);
+  }
+
+  Future<Map<String, dynamic>> requestTransferLimit({required double requestedLimit, String reason = ''}) async {
+    final res = await http.post(Uri.parse('$baseUrl/transfer-limit-request.php'), headers: await _authHeaders(),
+        body: jsonEncode({'requested_limit': requestedLimit, 'reason': reason}));
+    return jsonDecode(res.body);
+  }
+
   // ---- Bulk SMS ----
+  Future<Map<String, dynamic>> bulkSmsInfo() async {
+    final res = await http.get(Uri.parse('$baseUrl/buy-bulk-sms.php'), headers: await _authHeaders());
+    return jsonDecode(res.body);
+  }
+
   Future<Map<String, dynamic>> buyBulkSms({String? senderId, required String message, required String recipients, required String transactionPin}) async {
     final res = await http.post(Uri.parse('$baseUrl/buy-bulk-sms.php'), headers: await _authHeaders(),
         body: jsonEncode({'sender_id': senderId ?? '', 'message': message, 'recipients': recipients, 'transaction_pin': transactionPin}));
@@ -343,15 +376,25 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
-  Future<Map<String, dynamic>> createVirtualAccount() async {
+  // kycType ('bvn' | 'nin') and kycNumber are only sent after the server
+  // has answered kyc_required — i.e. the provider asked for the customer's ID.
+  Future<Map<String, dynamic>> createVirtualAccount({String? kycType, String? kycNumber}) async {
     final res = await http.post(Uri.parse('$baseUrl/fund-wallet.php'), headers: await _authHeaders(),
-        body: jsonEncode({'action': 'create_virtual_account'}));
+        body: jsonEncode({
+          'action': 'create_virtual_account',
+          if (kycNumber != null) 'kyc_type': kycType,
+          if (kycNumber != null) 'kyc_number': kycNumber,
+        }));
     return jsonDecode(res.body);
   }
 
-  Future<Map<String, dynamic>> createVirtualAccountBillstack() async {
+  Future<Map<String, dynamic>> createVirtualAccountBillstack({String? kycType, String? kycNumber}) async {
     final res = await http.post(Uri.parse('$baseUrl/fund-wallet.php'), headers: await _authHeaders(),
-        body: jsonEncode({'action': 'create_virtual_account_billstack'}));
+        body: jsonEncode({
+          'action': 'create_virtual_account_billstack',
+          if (kycNumber != null) 'kyc_type': kycType,
+          if (kycNumber != null) 'kyc_number': kycNumber,
+        }));
     return jsonDecode(res.body);
   }
 

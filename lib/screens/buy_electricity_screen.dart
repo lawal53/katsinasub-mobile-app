@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
 import '../widgets/pin_field.dart';
 import '../purchase_result.dart';
 import '../services/api_service.dart';
@@ -59,7 +60,7 @@ class _BuyElectricityScreenState extends State<BuyElectricityScreen> {
     final cap = (c['cap'] as num?)?.toDouble() ?? 0;
     final fee = _chargeFor(amount);
     return 'Service charge: $pct%${cap > 0 ? ' (max ₦${cap.toStringAsFixed(0)})' : ''}'
-        '${amount > 0 ? ' = ₦${fee.toStringAsFixed(2)} — Total ₦${(amount + fee).toStringAsFixed(2)}' : ''}';
+        '${amount > 0 ? ' = ₦${nairaAmount(fee)} — Total ₦${nairaAmount(amount + fee)}' : ''}';
   }
 
   Future<void> _verify() async {

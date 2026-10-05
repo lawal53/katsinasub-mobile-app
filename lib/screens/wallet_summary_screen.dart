@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
 import '../services/api_service.dart';
 import 'receipt_screen.dart';
 
@@ -28,6 +29,8 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
   };
 
   String _category = 'all';
+  String _searchQuery = '';
+  final _searchCtrl = TextEditingController();
   double _balance = 0, _funded = 0, _spent = 0;
   final List<dynamic> _txns = [];
   int _page = 1;
@@ -49,7 +52,7 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
       setState(() => _loadingMore = true);
     }
     try {
-      final res = await _api.walletSummary(page: reset ? 1 : _page + 1, category: _category);
+      final res = await _api.walletSummary(page: reset ? 1 : _page + 1, category: _category, q: _searchQuery);
       if (!mounted) return;
       if (res['success'] != true) {
         setState(() { _error = '${res['message'] ?? 'Could not load history.'}'; _loading = false; _loadingMore = false; });
@@ -93,6 +96,31 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
                   ),
                   const SizedBox(height: 20),
                   const Text('Transaction History', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _searchCtrl,
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: tr('Search description or reference...'),
+                      prefixIcon: const Icon(Icons.search),
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                      suffixIcon: _searchQuery.isEmpty
+                          ? null
+                          : IconButton(
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _searchCtrl.clear();
+                                _searchQuery = '';
+                                _load(reset: true);
+                              },
+                            ),
+                    ),
+                    onSubmitted: (v) {
+                      _searchQuery = v.trim();
+                      _load(reset: true);
+                    },
+                  ),
                   const SizedBox(height: 8),
                   SizedBox(
                     height: 40,
@@ -151,7 +179,7 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('${t['created_at']}', style: const TextStyle(fontSize: 12)),
-            Text('₦${t['balance_before']} → ₦${t['balance_after']}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            Text('₦${nairaAmount(t['balance_before'])} → ₦${nairaAmount(t['balance_after'])}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
             Text(statusLabel(status), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor(status))),
           ],
         ),
@@ -161,7 +189,7 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              '${isCredit ? '+' : '-'}₦${t['amount']}',
+              '${isCredit ? '+' : '-'}₦${nairaAmount(t['amount'])}',
               style: TextStyle(color: isCredit ? Colors.green : Colors.red, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 2),
@@ -179,7 +207,7 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
             children: [
               Text(label, style: const TextStyle(fontSize: 12)),
               const SizedBox(height: 4),
-              Text('₦${value.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+              Text('₦${nairaAmount(value)}', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             ],
           ),
         ),

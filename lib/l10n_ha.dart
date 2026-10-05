@@ -290,4 +290,9 @@ const Map<String, String> kHausa = {
   'Pay with Card': 'Biya da Kati',
   'Bank Transfer': 'Tura ta Banki',
   'Current Package': 'Package na Yanzu',
+  'Your email is not verified yet.': 'Ba a tabbatar da email ɗinka ba tukuna.',
+  'Verify now': 'Tabbatar yanzu',
+  'Charges': 'Caji',
+  'No charges': 'Babu caji',
+  'Search description or reference...': 'Nemo bayani ko reference...',
 };

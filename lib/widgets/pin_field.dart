@@ -17,6 +17,7 @@ class PinField extends StatefulWidget {
 class _PinFieldState extends State<PinField> {
   bool _fingerprintOn = false;
   bool _busy = false;
+  bool _obscure = true;
 
   @override
   void initState() {
@@ -40,20 +41,28 @@ class _PinFieldState extends State<PinField> {
   Widget build(BuildContext context) {
     return TextField(
       controller: widget.controller,
-      obscureText: true,
+      obscureText: _obscure,
       keyboardType: TextInputType.number,
       decoration: InputDecoration(
         labelText: tr('Transaction PIN'),
         border: const OutlineInputBorder(),
-        suffixIcon: _fingerprintOn
-            ? IconButton(
+        suffixIcon: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(_obscure ? Icons.visibility_off : Icons.visibility),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+            if (_fingerprintOn)
+              IconButton(
                 icon: _busy
                     ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.fingerprint),
                 onPressed: _busy ? null : _useFingerprint,
                 tooltip: 'Use fingerprint',
-              )
-            : null,
+              ),
+          ],
+        ),
       ),
     );
   }

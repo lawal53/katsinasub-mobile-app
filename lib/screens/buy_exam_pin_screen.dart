@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
 import '../widgets/pin_field.dart';
 import '../purchase_result.dart';
 import '../services/api_service.dart';
@@ -75,7 +76,7 @@ class _BuyExamPinScreenState extends State<BuyExamPinScreen> {
           Wrap(
             spacing: 8,
             children: _exams.map<Widget>((e) => ChoiceChip(
-                  label: Text('${e['exam_name']} (₦${e['price']})'),
+                  label: Text('${e['exam_name']} (₦${nairaAmount(e['price'])})'),
                   selected: _selectedExam == e['exam_name'],
                   onSelected: (_) => setState(() => _selectedExam = e['exam_name']),
                 )).toList(),
@@ -102,7 +103,7 @@ class _BuyExamPinScreenState extends State<BuyExamPinScreen> {
               padding: const EdgeInsets.all(16),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [const Text('Amount to be deducted'), Text('₦${_total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold))],
+                children: [const Text('Amount to be deducted'), Text('₦${nairaAmount(_total)}', style: const TextStyle(fontWeight: FontWeight.bold))],
               ),
             ),
           ),

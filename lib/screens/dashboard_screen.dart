@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
+import '../theme.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
@@ -18,7 +20,9 @@ import 'bonus_transfer_screen.dart';
 import 'account_settings_screen.dart';
 import 'referral_screen.dart';
 import 'notifications_screen.dart';
+import 'verify_contact_screen.dart';
 import 'fund_wallet_screen.dart';
+import 'transfer_screen.dart';
 import 'checkout_webview_screen.dart';
 import 'fund_wallet_screen.dart';
 import 'support_menu.dart';
@@ -84,12 +88,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     final unread = (_user?['unread_notifications'] ?? 0) as int;
-    final balanceText = _balanceHidden ? '****' : '\u20a6${_user?['wallet_balance']}';
+    final balanceText = _balanceHidden ? '****' : '\u20a6${nairaAmount(_user?['wallet_balance'])}';
 
     return Scaffold(
       appBar: AppBar(
         title: Text('Hi, ${_user?['full_name']?.split(' ')?.first ?? ''}'),
         actions: [
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: AppTheme.notifier,
+            builder: (context, mode, __) => IconButton(
+              icon: Icon(mode == ThemeMode.dark ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+              tooltip: 'Dark mode',
+              onPressed: AppTheme.toggle,
+            ),
+          ),
           Stack(
             alignment: Alignment.center,
             children: [
@@ -151,6 +163,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ],
                     ),
                     Text(balanceText, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                    if (((_user?['bonus_balance'] as num?) ?? 0) > 0) ...[
+                      const SizedBox(height: 4),
+                      InkWell(
+                        onTap: () => _openAndRefresh(const BonusTransferScreen()),
+                        child: Text(
+                          'Bonus: ₦${nairaAmount(_user?['bonus_balance'])} — tap to move to wallet',
+                          style: TextStyle(fontSize: 12.5, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -174,6 +196,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(height: 20),
+            if (_user?['email_verified'] == false)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: const Color(0xFFFDF1D6), borderRadius: BorderRadius.circular(10)),
+                  child: Row(
+                    children: [
+                      Expanded(child: Text('Your email is not verified yet.', style: TextStyle(color: Colors.brown.shade800))),
+                      TextButton(
+                        onPressed: () => _openAndRefresh(const VerifyContactScreen(type: 'email')),
+                        child: const Text('Verify now'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             _buildQuickFundAndTier(),
             const SizedBox(height: 20),
             const Text('Services', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -239,18 +279,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => _openAndRefresh(const FundWalletScreen()),
-                icon: const Icon(Icons.credit_card, size: 18),
-                label: const Text('Pay with Card'),
+                onPressed: () => _openAndRefresh(const TransferScreen()),
+                icon: const Icon(Icons.person_outline, size: 18),
+                label: const Text('Transfer To Katsinasub User'),
                 style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 10)),
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton.icon(
-                onPressed: () => _openAndRefresh(const FundWalletScreen()),
+                onPressed: () => showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Transfer To Bank'),
+                    content: const Text('This feature is coming soon.'),
+                    actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+                  ),
+                ),
                 icon: const Icon(Icons.account_balance, size: 18),
-                label: const Text('Bank Transfer'),
+                label: const Text('Transfer To Bank'),
                 style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 10)),
               ),
             ),

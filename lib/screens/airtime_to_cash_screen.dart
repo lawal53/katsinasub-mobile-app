@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
 import '../services/api_service.dart';
 import 'receipt_screen.dart' show statusColor, statusLabel;
+import 'support_menu.dart';
 
 /// Airtime-to-Cash — same per-network discount, destination number and
 /// live "you'll receive ₦X" hint as the website, plus the same request
@@ -68,13 +70,22 @@ class _AirtimeToCashScreenState extends State<AirtimeToCashScreen> {
     }
     setState(() => _busy = false);
     if (!mounted) return;
+    final needsSupport = res['success'] == true && res['contact_support'] == true;
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         icon: Icon(res['success'] == true ? Icons.hourglass_top : Icons.error, color: res['success'] == true ? Colors.orange : Colors.red, size: 44),
         title: Text(res['success'] == true ? 'Request Received' : 'Failed'),
         content: Text('${res['message'] ?? ''}'),
-        actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+        actions: [
+          if (needsSupport)
+            FilledButton(
+              onPressed: () { Navigator.pop(ctx); showSupportMenu(context); },
+              child: const Text('Contact Support'),
+            )
+          else
+            FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+        ],
       ),
     );
     if (res['success'] == true) {
@@ -129,7 +140,7 @@ class _AirtimeToCashScreenState extends State<AirtimeToCashScreen> {
                 children: [
                   Text('Discount: ${_discountPercent.toStringAsFixed(0)}%', style: const TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
-                  Text('Send to: $_destination', style: const TextStyle(fontWeight: FontWeight.w600)),
+                  const Text('After you submit, contact support to confirm your request — they\'ll then send you the number to send the airtime to.', style: TextStyle(fontSize: 12.5)),
                 ],
               ),
             ),
@@ -142,7 +153,7 @@ class _AirtimeToCashScreenState extends State<AirtimeToCashScreen> {
           if (_amountCtrl.text.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text("You'll receive: ₦${_payout.toStringAsFixed(2)}", style: TextStyle(fontSize: 12.5, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
+              child: Text("You'll receive: ₦${nairaAmount(_payout)}", style: TextStyle(fontSize: 12.5, color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w600)),
             ),
           const SizedBox(height: 12),
           TextField(
@@ -161,20 +172,23 @@ class _AirtimeToCashScreenState extends State<AirtimeToCashScreen> {
           if (requests.isEmpty) const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Text('No requests yet.')),
           ...requests.map((r) {
             final status = '${r['status']}';
+            final displayLabel = status == 'awaiting_airtime' ? 'Send Airtime Now' : (status == 'pending' ? 'Contact Support' : statusLabel(status));
             return Card(
               child: ListTile(
-                title: Text('${r['network']} — ₦${r['amount_sent']}'),
+                title: Text('${r['network']} — ₦${nairaAmount(r['amount_sent'])}'),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Payout: ₦${r['payout_amount']} • Sent to: ${r['send_to_number'] ?? '-'}', style: const TextStyle(fontSize: 12)),
+                    Text('Payout: ₦${nairaAmount(r['payout_amount'])} • Sent to: ${r['send_to_number'] ?? '-'}', style: const TextStyle(fontSize: 12)),
                     Text('${r['created_at']}', style: const TextStyle(fontSize: 11, color: Colors.black45)),
                     if (r['admin_note'] != null && '${r['admin_note']}'.isNotEmpty)
                       Text('${r['admin_note']}', style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic)),
                   ],
                 ),
                 isThreeLine: true,
-                trailing: Text(statusLabel(status), style: TextStyle(fontWeight: FontWeight.bold, color: statusColor(status), fontSize: 12)),
+                trailing: status == 'pending'
+                    ? TextButton(onPressed: () => showSupportMenu(context), child: const Text('Contact Support', style: TextStyle(fontSize: 11.5)))
+                    : Text(displayLabel, style: TextStyle(fontWeight: FontWeight.bold, color: statusColor(status), fontSize: 12)),
               ),
             );
           }),

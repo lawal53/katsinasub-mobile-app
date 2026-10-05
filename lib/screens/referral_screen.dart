@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 
@@ -58,10 +59,47 @@ class _ReferralScreenState extends State<ReferralScreen> {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  if ((_data!['bonus_amount'] as num) > 0)
-                    Text('You earn ₦${_data!['bonus_amount']} every time someone you refer funds their wallet for the first time.', style: const TextStyle(fontSize: 12.5))
-                  else
-                    const Text('Admin has not enabled the referral bonus yet.', style: TextStyle(fontSize: 12.5, color: Colors.grey)),
+                  Builder(builder: (context) {
+                    // bonus_amount is EITHER a flat naira amount OR a
+                    // percentage, depending on admin's bonus_type setting
+                    // — formatting it as ₦ unconditionally (the old bug)
+                    // showed "₦5" for a 5% setting instead of "5%".
+                    // transaction_commission_percent is a SEPARATE,
+                    // ongoing per-purchase commission and wasn't shown at
+                    // all before.
+                    final bonusAmount = (_data!['bonus_amount'] as num?) ?? 0;
+                    final bonusType = _data!['bonus_type'] as String? ?? 'flat';
+                    final txnPercent = (_data!['transaction_commission_percent'] as num?) ?? 0;
+                    String trimPercent(num v) {
+                      var s = v.toStringAsFixed(2);
+                      s = s.replaceFirst(RegExp(r'0+$'), '');
+                      s = s.replaceFirst(RegExp(r'\.$'), '');
+                      return s;
+                    }
+                    if (bonusAmount <= 0 && txnPercent <= 0) {
+                      return const Text('Admin has not enabled the referral bonus yet.', style: TextStyle(fontSize: 12.5, color: Colors.grey));
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (bonusAmount > 0)
+                          Text(
+                            bonusType == 'percent'
+                                ? 'You earn ${trimPercent(bonusAmount)}% of their funded amount the first time someone you refer funds their wallet.'
+                                : 'You earn ₦${nairaAmount(bonusAmount)} every time someone you refer funds their wallet for the first time.',
+                            style: const TextStyle(fontSize: 12.5),
+                          ),
+                        if (txnPercent > 0)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'You also earn ${trimPercent(txnPercent)}% commission on every purchase your referrals make, for as long as they use the platform.',
+                              style: const TextStyle(fontSize: 12.5),
+                            ),
+                          ),
+                      ],
+                    );
+                  }),
                 ],
               ),
             ),

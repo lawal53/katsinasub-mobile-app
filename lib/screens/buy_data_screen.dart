@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
 import '../purchase_result.dart';
 import '../widgets/pin_field.dart';
 import '../services/api_service.dart';
@@ -80,7 +81,7 @@ class _BuyDataScreenState extends State<BuyDataScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text('${plan['network']} — ${plan['plan_name']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text('₦${plan['price']} • ${plan['validity']}'),
+              Text('₦${nairaAmount(plan['price'])} • ${plan['validity']}'),
               const SizedBox(height: 16),
               TextField(
                 controller: phoneCtrl,
@@ -157,7 +158,7 @@ class _BuyDataScreenState extends State<BuyDataScreen> {
                         child: ListTile(
                           title: Text('${p['plan_name']}'),
                           subtitle: Text('${p['validity']}'),
-                          trailing: Text('₦${p['price']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          trailing: Text('₦${nairaAmount(p['price'])}', style: const TextStyle(fontWeight: FontWeight.bold)),
                           onTap: () => _openBuySheet(Map<String, dynamic>.from(p)),
                         ),
                       ),

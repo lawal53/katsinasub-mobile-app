@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
 import '../widgets/pin_field.dart';
 import '../purchase_result.dart';
 import '../services/api_service.dart';
@@ -17,9 +18,15 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
   final _pinCtrl = TextEditingController();
 
   List<dynamic> _plans = [];
+  String? _selectedProvider;
   Map<String, dynamic>? _selectedPlan;
   bool _loading = true;
   bool _busy = false;
+
+  static const _providers = ['DSTV', 'GOTV', 'STARTIMES'];
+
+  List<dynamic> get _plansForSelectedProvider =>
+      _plans.where((p) => p['provider'] == _selectedProvider).toList();
 
   // Set once verify-cable.php responds — this is what unlocks step 2.
   Map<String, dynamic>? _verification;
@@ -34,8 +41,23 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
     final res = await _api.cablePlans();
     setState(() {
       _plans = res['success'] == true ? res['cable_plans'] : [];
-      _selectedPlan = _plans.isNotEmpty ? _plans.first : null;
+      // Default to whichever provider actually has plans configured,
+      // in the usual DSTV/GOTV/STARTIMES order.
+      _selectedProvider = _providers.firstWhere(
+        (p) => _plans.any((pl) => pl['provider'] == p),
+        orElse: () => _providers.first,
+      );
+      final forProvider = _plans.where((p) => p['provider'] == _selectedProvider).toList();
+      _selectedPlan = forProvider.isNotEmpty ? forProvider.first : null;
       _loading = false;
+    });
+  }
+
+  void _onProviderChanged(String provider) {
+    setState(() {
+      _selectedProvider = provider;
+      final forProvider = _plansForSelectedProvider;
+      _selectedPlan = forProvider.isNotEmpty ? forProvider.first : null;
     });
   }
 
@@ -75,19 +97,38 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
         padding: const EdgeInsets.all(20),
         children: [
           if (_verification == null) ...[
-            // ---- STEP 1: pick package + smartcard, then verify ----
-            const Text('Package', style: TextStyle(fontWeight: FontWeight.bold)),
-            DropdownButtonFormField<Map<String, dynamic>>(
-              initialValue: _selectedPlan,
-              isExpanded: true,
-              items: _plans
-                  .map<DropdownMenuItem<Map<String, dynamic>>>((p) => DropdownMenuItem(
-                        value: p,
-                        child: Text('${p['provider']} — ${p['package_name']} (₦${p['price']})'),
-                      ))
-                  .toList(),
-              onChanged: (v) => setState(() => _selectedPlan = v),
+            // ---- STEP 1: pick provider, then package + smartcard, then verify ----
+            const Text('Provider', style: TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: _providers.map((p) {
+                final hasPlans = _plans.any((pl) => pl['provider'] == p);
+                return ChoiceChip(
+                  label: Text(p),
+                  selected: _selectedProvider == p,
+                  onSelected: hasPlans ? (_) => _onProviderChanged(p) : null,
+                );
+              }).toList(),
             ),
+            const SizedBox(height: 16),
+            const Text('Package', style: TextStyle(fontWeight: FontWeight.bold)),
+            _plansForSelectedProvider.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('No packages available for this provider yet.', style: TextStyle(color: Colors.black54)),
+                  )
+                : DropdownButtonFormField<Map<String, dynamic>>(
+                    initialValue: _selectedPlan,
+                    isExpanded: true,
+                    items: _plansForSelectedProvider
+                        .map<DropdownMenuItem<Map<String, dynamic>>>((p) => DropdownMenuItem(
+                              value: p,
+                              child: Text('${p['package_name']} (₦${nairaAmount(p['price'])})'),
+                            ))
+                        .toList(),
+                    onChanged: (v) => setState(() => _selectedPlan = v),
+                  ),
             const SizedBox(height: 12),
             TextField(
               controller: _smartcardCtrl,
@@ -123,7 +164,7 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
                     const SizedBox(height: 10),
                     Text('${_verification!['provider']} — ${_verification!['package_name']}'),
                     Text('Smartcard: ${_smartcardCtrl.text}'),
-                    Text('Amount: ₦${_verification!['price']}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                    Text('Amount: ₦${nairaAmount(_verification!['price'])}', style: const TextStyle(fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -139,7 +180,7 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _busy ? null : _pay,
-              child: _busy ? const CircularProgressIndicator() : Text('Confirm & Pay ₦${_verification!['price']}'),
+              child: _busy ? const CircularProgressIndicator() : Text('Confirm & Pay ₦${nairaAmount(_verification!['price'])}'),
             ),
             TextButton(
               onPressed: () => setState(() => _verification = null),

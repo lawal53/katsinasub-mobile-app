@@ -21,6 +21,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _referralCode = TextEditingController();
   bool _loading = false;
   String? _error;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
 
   Future<void> _submit() async {
     setState(() { _loading = true; _error = null; });
@@ -43,13 +45,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  Widget _field(TextEditingController c, String label, {bool obscure = false, TextInputType? type}) => Padding(
+  Widget _field(TextEditingController c, String label, {bool obscure = false, TextInputType? type, VoidCallback? onToggleObscure}) => Padding(
         padding: const EdgeInsets.only(bottom: 12),
         child: TextField(
           controller: c,
           obscureText: obscure,
           keyboardType: type,
-          decoration: InputDecoration(labelText: tr(label), border: const OutlineInputBorder()),
+          decoration: InputDecoration(
+            labelText: tr(label),
+            border: const OutlineInputBorder(),
+            suffixIcon: onToggleObscure == null ? null : IconButton(
+              icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+              onPressed: onToggleObscure,
+            ),
+          ),
         ),
       );
 
@@ -69,8 +78,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _field(_username, 'Username'),
             _field(_phone, 'Phone Number', type: TextInputType.phone),
             _field(_email, 'Email', type: TextInputType.emailAddress),
-            _field(_password, 'Password', obscure: true),
-            _field(_confirm, 'Confirm Password', obscure: true),
+            _field(_password, 'Password', obscure: _obscurePassword, onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword)),
+            _field(_confirm, 'Confirm Password', obscure: _obscureConfirm, onToggleObscure: () => setState(() => _obscureConfirm = !_obscureConfirm)),
             _field(_referralCode, 'Referral Code (optional)'),
             const SizedBox(height: 8),
             FilledButton(

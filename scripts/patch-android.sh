@@ -10,8 +10,8 @@
 # produced and edits the right files with the right syntax.
 set -euo pipefail
 
-ORG="com.kstsinasub"
-APP_ID="com.kstsinasub.app"
+ORG="com.katsinasub"
+APP_ID="com.katsinasub.app"
 
 echo "==> Creating platform folders (android/, ios/) if missing..."
 flutter create --org "$ORG" --platforms android,ios .
@@ -37,9 +37,11 @@ echo "==> Forcing applicationId to $APP_ID ..."
 if [ "$KTS" = true ]; then
   sed -i "s/applicationId = \".*\"/applicationId = \"$APP_ID\"/" "$APP_GRADLE"
   sed -i "s/compileSdk = flutter.compileSdkVersion/compileSdk = 36/" "$APP_GRADLE"
+  sed -i "s/targetSdk = flutter.targetSdkVersion/targetSdk = 36/" "$APP_GRADLE"
 else
   sed -i "s/applicationId \".*\"/applicationId \"$APP_ID\"/" "$APP_GRADLE"
   sed -i "s/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 36/" "$APP_GRADLE"
+  sed -i "s/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 36/" "$APP_GRADLE"
 fi
 
 echo "==> Placing google-services.json ..."
@@ -49,8 +51,39 @@ if [ ! -f "google-services-temp.json" ]; then
 fi
 cp google-services-temp.json android/app/google-services.json
 
+echo "==> Setting Android app icon from assets/logo.png ..."
+# flutter create always scaffolds the default plain-Flutter launcher
+# icon into every mipmap-*/ic_launcher.png — nothing else replaces it,
+# so without this the app installs with the generic Flutter icon
+# instead of the real logo, regardless of what's used inside the app.
+if [ -f "assets/logo.png" ]; then
+  CONVERT_CMD=""
+  if command -v convert >/dev/null 2>&1; then
+    CONVERT_CMD="convert"
+  elif command -v magick >/dev/null 2>&1; then
+    CONVERT_CMD="magick"
+  fi
+  if [ -n "$CONVERT_CMD" ]; then
+    for pair in "mdpi:48" "hdpi:72" "xhdpi:96" "xxhdpi:144" "xxxhdpi:192"; do
+      density="${pair%%:*}"
+      size="${pair##*:}"
+      dir="android/app/src/main/res/mipmap-${density}"
+      mkdir -p "$dir"
+      "$CONVERT_CMD" assets/logo.png -resize "${size}x${size}" -background white -gravity center -extent "${size}x${size}" "$dir/ic_launcher.png"
+    done
+    echo "==> App icon replaced for all densities."
+  else
+    echo "WARNING: ImageMagick not found on this runner — app icon left as the default Flutter icon."
+  fi
+else
+  echo "WARNING: assets/logo.png not found — app icon left as the default Flutter icon."
+fi
+
 echo "==> Adding Google Services Gradle plugin ..."
 if [ "$KTS" = true ]; then
+  # Kotlin DSL: declare the plugin (with version, apply false) in the
+  # top-level settings.gradle.kts plugins block, then apply it
+  # (no version) in the app-level build.gradle.kts plugins block.
   if [ -f "$SETTINGS_GRADLE" ] && ! grep -q "com.google.gms.google-services" "$SETTINGS_GRADLE"; then
     perl -0777 -pi -e 's/(plugins\s*\{)/$1\n    id("com.google.gms.google-services") version "4.4.2" apply false/s' "$SETTINGS_GRADLE"
   fi
@@ -151,6 +184,27 @@ if [ -f "ios/Runner/Info.plist" ] && ! grep -q "NSFaceIDUsageDescription" ios/Ru
   perl -0777 -pi -e "s/(<dict>)/\$1\n\t<key>NSFaceIDUsageDescription<\/key>\n\t<string>Ana amfani da Face ID\/fingerprint don sauri budewa maimakon rubuta PIN.<\/string>/s" ios/Runner/Info.plist
 fi
 
+echo "==> Setting the app's display name to Katsinasub ..."
+# flutter create's default AndroidManifest.xml carries
+# android:label="vtu_mobile_app" (the project folder name) — this is
+# the app name shown under the launcher icon on the phone, Settings >
+# Apps, and notifications, and it's been showing the wrong thing in
+# every build until now because nothing in this script ever touched
+# it. Fixed here so a fresh build+install already has it right, with
+# no manual edit or separate script needed.
+if [ -f "$ANDROID_MANIFEST" ]; then
+  sed -i 's/android:label="[^"]*"/android:label="Katsinasub"/' "$ANDROID_MANIFEST"
+  echo "    $ANDROID_MANIFEST android:label is now:"
+  grep "android:label" "$ANDROID_MANIFEST"
+else
+  echo "    WARNING: $ANDROID_MANIFEST not found — app display name was not set."
+fi
+# Same app-name fix for iOS, in case this is ever built for it too.
+if [ -f "ios/Runner/Info.plist" ]; then
+  perl -0777 -pi -e 's/(<key>CFBundleDisplayName<\/key>\s*<string>)[^<]*(<\/string>)/${1}Katsinasub${2}/s' ios/Runner/Info.plist
+  perl -0777 -pi -e 's/(<key>CFBundleName<\/key>\s*<string>)[^<]*(<\/string>)/${1}Katsinasub${2}/s' ios/Runner/Info.plist
+fi
+
 echo "==> Writing android/key.properties from CI secrets ..."
 cat > android/key.properties <<EOF
 storePassword=${KEYSTORE_PASSWORD}
@@ -220,5 +274,11 @@ fi
 
 echo "==> Final $APP_GRADLE for reference:"
 cat "$APP_GRADLE"
+
+echo "==> Verifying targetSdk is 36+ (Google Play requires this — enforced Aug 31, 2026) ..."
+if ! grep -Eq 'targetSdk(Version)?\s*=?\s*3[6-9]' "$APP_GRADLE"; then
+  echo "ERROR: targetSdk in build.gradle is not 36 or higher — Google Play will reject this upload. Aborting."
+  exit 1
+fi
 
 echo "==> Done. Android project is ready to build."

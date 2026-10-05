@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
 import '../widgets/pin_field.dart';
 import '../purchase_result.dart';
 import '../services/api_service.dart';
@@ -80,7 +81,7 @@ class _CardPrintingScreenState extends State<CardPrintingScreen> {
               isExpanded: true,
               items: _plans.map<DropdownMenuItem<Map<String, dynamic>>>((p) => DropdownMenuItem(
                     value: p,
-                    child: Text('${p['network']} - ${p['denomination']} (₦${p['price']})'),
+                    child: Text('${p['network']} - ${p['denomination']} (₦${nairaAmount(p['price'])})'),
                   )).toList(),
               onChanged: (v) => setState(() => _selectedPlan = v),
             ),
@@ -100,7 +101,7 @@ class _CardPrintingScreenState extends State<CardPrintingScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [const Text('Total'), Text('₦${_total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold))],
+                  children: [const Text('Total'), Text('₦${nairaAmount(_total)}', style: const TextStyle(fontWeight: FontWeight.bold))],
                 ),
               ),
             ),

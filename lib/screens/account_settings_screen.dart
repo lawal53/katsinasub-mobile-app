@@ -19,11 +19,17 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   final _newPasswordCtrl = TextEditingController();
   final _confirmPasswordCtrl = TextEditingController();
   bool _passwordBusy = false;
+  bool _obscureCurrentPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
 
   final _currentPasswordForPinCtrl = TextEditingController();
   final _newPinCtrl = TextEditingController();
   final _confirmPinCtrl = TextEditingController();
   bool _pinBusy = false;
+  bool _obscureCurrentPasswordForPin = true;
+  bool _obscureNewPin = true;
+  bool _obscureConfirmPin = true;
 
   final _lock = LockService.instance;
   bool _biometricOn = false;
@@ -147,18 +153,27 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   Future<String?> _promptForPin() async {
     final ctrl = TextEditingController();
+    bool obscure = true;
     return showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Enter your PIN'),
-        content: TextField(
-          controller: ctrl, obscureText: true, maxLength: 4, keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: tr('Transaction PIN')),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Enter your PIN'),
+          content: TextField(
+            controller: ctrl, obscureText: obscure, maxLength: 4, keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: tr('Transaction PIN'),
+              suffixIcon: IconButton(
+                icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
+                onPressed: () => setDialogState(() => obscure = !obscure),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('OK')),
+          ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, ctrl.text), child: const Text('OK')),
-        ],
       ),
     );
   }
@@ -213,11 +228,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 children: [
                   const Text('Change Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 12),
-                  TextField(controller: _currentPasswordCtrl, obscureText: true, decoration: InputDecoration(labelText: tr('Current Password'), border: OutlineInputBorder())),
+                  TextField(controller: _currentPasswordCtrl, obscureText: _obscureCurrentPassword, decoration: InputDecoration(labelText: tr('Current Password'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureCurrentPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureCurrentPassword = !_obscureCurrentPassword)))),
                   const SizedBox(height: 10),
-                  TextField(controller: _newPasswordCtrl, obscureText: true, decoration: InputDecoration(labelText: tr('New Password'), border: OutlineInputBorder())),
+                  TextField(controller: _newPasswordCtrl, obscureText: _obscureNewPassword, decoration: InputDecoration(labelText: tr('New Password'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureNewPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword)))),
                   const SizedBox(height: 10),
-                  TextField(controller: _confirmPasswordCtrl, obscureText: true, decoration: InputDecoration(labelText: tr('Confirm New Password'), border: OutlineInputBorder())),
+                  TextField(controller: _confirmPasswordCtrl, obscureText: _obscureConfirmPassword, decoration: InputDecoration(labelText: tr('Confirm New Password'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword)))),
                   const SizedBox(height: 12),
                   FilledButton(
                     onPressed: _passwordBusy ? null : _changePassword,
@@ -238,10 +253,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                   const SizedBox(height: 6),
                   const Text('Your PIN confirms transactions. Enter your password to set a new one.', style: TextStyle(fontSize: 12.5)),
                   const SizedBox(height: 12),
-                  TextField(controller: _currentPasswordForPinCtrl, obscureText: true, decoration: InputDecoration(labelText: tr('Current Password'), border: OutlineInputBorder())),
+                  TextField(controller: _currentPasswordForPinCtrl, obscureText: _obscureCurrentPasswordForPin, decoration: InputDecoration(labelText: tr('Current Password'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureCurrentPasswordForPin ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureCurrentPasswordForPin = !_obscureCurrentPasswordForPin)))),
                   const SizedBox(height: 10),
-                  TextField(controller: _newPinCtrl, obscureText: true, maxLength: 4, decoration: InputDecoration(labelText: tr('New PIN (4 digits)'), border: OutlineInputBorder())),
-                  TextField(controller: _confirmPinCtrl, obscureText: true, maxLength: 4, decoration: InputDecoration(labelText: tr('Confirm New PIN'), border: OutlineInputBorder())),
+                  TextField(controller: _newPinCtrl, obscureText: _obscureNewPin, maxLength: 4, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: tr('New PIN (4 digits)'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureNewPin ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureNewPin = !_obscureNewPin)))),
+                  TextField(controller: _confirmPinCtrl, obscureText: _obscureConfirmPin, maxLength: 4, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: tr('Confirm New PIN'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureConfirmPin ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureConfirmPin = !_obscureConfirmPin)))),
                   const SizedBox(height: 8),
                   FilledButton(
                     onPressed: _pinBusy ? null : _changePin,

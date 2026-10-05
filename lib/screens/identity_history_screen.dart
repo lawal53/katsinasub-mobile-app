@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
 import '../services/api_service.dart';
 
 class IdentityHistoryScreen extends StatefulWidget {
@@ -36,7 +37,7 @@ class _IdentityHistoryScreenState extends State<IdentityHistoryScreen> {
                     return ListTile(
                       leading: Icon(ok ? Icons.check_circle : Icons.error, color: ok ? Colors.green : Colors.red),
                       title: Text('${h['type'].toString().toUpperCase()} — ${h['input_number']}'),
-                      subtitle: Text('${h['full_name'] ?? '-'} • ₦${h['amount']} • ${h['created_at']}'),
+                      subtitle: Text('${h['full_name'] ?? '-'} • ₦${nairaAmount(h['amount'])} • ${h['created_at']}'),
                     );
                   },
                 ),

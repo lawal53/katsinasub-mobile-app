@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
 import '../widgets/pin_field.dart';
 import '../purchase_result.dart';
 import '../services/api_service.dart';
@@ -18,6 +19,8 @@ class _BuyAirtimeScreenState extends State<BuyAirtimeScreen> {
 
   List<dynamic> _networks = [];
   String? _selectedNetwork;
+  double _minAmount = 50;
+  double _maxAmount = 0; // 0 = no maximum
   bool _loading = true;
   bool _submitting = false;
 
@@ -33,6 +36,10 @@ class _BuyAirtimeScreenState extends State<BuyAirtimeScreen> {
     setState(() {
       _networks = res['success'] == true ? res['networks'] : [];
       _selectedNetwork = _networks.isNotEmpty ? _networks.first['name'] : null;
+      if (res['success'] == true) {
+        _minAmount = (res['min_amount'] as num?)?.toDouble() ?? 50;
+        _maxAmount = (res['max_amount'] as num?)?.toDouble() ?? 0;
+      }
       _loading = false;
     });
   }
@@ -40,6 +47,13 @@ class _BuyAirtimeScreenState extends State<BuyAirtimeScreen> {
   double get _ratePer100 {
     final n = _networks.firstWhere((n) => n['name'] == _selectedNetwork, orElse: () => null);
     return n == null ? 100.0 : (n['rate_per_100'] as num).toDouble();
+  }
+
+  bool get _amountInRange {
+    final face = double.tryParse(_amountCtrl.text) ?? 0;
+    if (face < _minAmount) return false;
+    if (_maxAmount > 0 && face > _maxAmount) return false;
+    return true;
   }
 
   double get _charge {
@@ -112,7 +126,11 @@ class _BuyAirtimeScreenState extends State<BuyAirtimeScreen> {
           TextField(
             controller: _amountCtrl,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: tr('Airtime Amount (₦)'), border: OutlineInputBorder()),
+            decoration: InputDecoration(
+              labelText: tr('Airtime Amount (₦)'),
+              helperText: 'Min ₦${_minAmount.toStringAsFixed(0)}' + (_maxAmount > 0 ? ' — Max ₦${_maxAmount.toStringAsFixed(0)}' : ''),
+              border: const OutlineInputBorder(),
+            ),
           ),
           const SizedBox(height: 12),
           PinField(controller: _pinCtrl),
@@ -125,14 +143,14 @@ class _BuyAirtimeScreenState extends State<BuyAirtimeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Text('Amount to be deducted'),
-                  Text('₦${_charge.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text('₦${nairaAmount(_charge)}', style: const TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 20),
           FilledButton(
-            onPressed: _submitting || _selectedNetwork == null ? null : () => _submit(),
+            onPressed: _submitting || _selectedNetwork == null || !_amountInRange ? null : () => _submit(),
             child: _submitting ? const CircularProgressIndicator() : const Text('Buy Airtime'),
           ),
         ],

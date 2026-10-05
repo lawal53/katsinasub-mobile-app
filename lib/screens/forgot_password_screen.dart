@@ -16,6 +16,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _confirmCtrl = TextEditingController();
   bool _codeSent = false;
   bool _busy = false;
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
   String? _message;
 
   Future<void> _sendCode() async {
@@ -76,14 +78,28 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: _passwordCtrl,
-                obscureText: true,
-                decoration: InputDecoration(labelText: tr('New Password'), border: OutlineInputBorder()),
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
+                  labelText: tr('New Password'),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: _confirmCtrl,
-                obscureText: true,
-                decoration: InputDecoration(labelText: tr('Confirm New Password'), border: OutlineInputBorder()),
+                obscureText: _obscureConfirm,
+                decoration: InputDecoration(
+                  labelText: tr('Confirm New Password'),
+                  border: const OutlineInputBorder(),
+                  suffixIcon: IconButton(
+                    icon: Icon(_obscureConfirm ? Icons.visibility_off : Icons.visibility),
+                    onPressed: () => setState(() => _obscureConfirm = !_obscureConfirm),
+                  ),
+                ),
               ),
               const SizedBox(height: 16),
               FilledButton(

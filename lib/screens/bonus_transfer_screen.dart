@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../currency.dart';
 import '../services/api_service.dart';
 
 class BonusTransferScreen extends StatefulWidget {
@@ -12,6 +13,7 @@ class _BonusTransferScreenState extends State<BonusTransferScreen> {
   final _api = ApiService();
   final _amountCtrl = TextEditingController();
   double _bonusBalance = 0;
+  double _minTransfer = 100;
   bool _loading = true;
   bool _busy = false;
 
@@ -25,6 +27,7 @@ class _BonusTransferScreenState extends State<BonusTransferScreen> {
     final res = await _api.me();
     setState(() {
       _bonusBalance = res['success'] == true ? (res['user']['bonus_balance'] as num).toDouble() : 0;
+      _minTransfer = res['success'] == true ? ((res['user']['bonus_transfer_min'] as num?)?.toDouble() ?? 100) : 100;
       _amountCtrl.text = _bonusBalance.toString();
       _loading = false;
     });
@@ -55,7 +58,7 @@ class _BonusTransferScreenState extends State<BonusTransferScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text('Bonus Balance'),
-                  Text('₦${_bonusBalance.toStringAsFixed(2)}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
+                  Text('₦${nairaAmount(_bonusBalance)}', style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   const Text('Bonuses credited by the admin (promos, rewards, etc.) show up here. Move them into your wallet to use for purchases.', style: TextStyle(fontSize: 12.5)),
                 ],
@@ -63,7 +66,9 @@ class _BonusTransferScreenState extends State<BonusTransferScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          if (_bonusBalance > 0) ...[
+          if (_bonusBalance >= _minTransfer) ...[
+            Text('Minimum: ₦${nairaAmount(_minTransfer)}', style: const TextStyle(fontSize: 12.5, color: Colors.black54)),
+            const SizedBox(height: 6),
             TextField(
               controller: _amountCtrl,
               keyboardType: TextInputType.number,
@@ -74,7 +79,9 @@ class _BonusTransferScreenState extends State<BonusTransferScreen> {
               onPressed: _busy ? null : _submit,
               child: _busy ? const CircularProgressIndicator() : const Text('Transfer to Wallet'),
             ),
-          ] else
+          ] else if (_bonusBalance > 0)
+            Text('The minimum you can move to your wallet is ₦${nairaAmount(_minTransfer)} — your bonus balance is below that.')
+          else
             const Text("You don't have any bonus balance yet."),
         ],
       ),
