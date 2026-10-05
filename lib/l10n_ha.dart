@@ -295,4 +295,10 @@ const Map<String, String> kHausa = {
   'Charges': 'Caji',
   'No charges': 'Babu caji',
   'Search description or reference...': 'Nemo bayani ko reference...',
+  'Select Network': 'Zaɓi Network',
+  'Select Data Plan': 'Zaɓi Data Plan',
+  'Select Provider': 'Zaɓi Provider',
+  'Select Package': 'Zaɓi Package',
+  'Select Disco': 'Zaɓi Kamfanin Wuta',
+  'Select Examination': 'Zaɓi Jarabawa',
 };

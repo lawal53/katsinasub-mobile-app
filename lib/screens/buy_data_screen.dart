@@ -3,10 +3,12 @@ import '../l10n.dart';
 import '../currency.dart';
 import '../purchase_result.dart';
 import '../widgets/pin_field.dart';
+import '../widgets/service_picker.dart';
 import '../services/api_service.dart';
 
-/// Buy Data — same flow as the website: pick a network, then a plan
-/// type (SME, Gifting, ...), then one of the plans under that type.
+/// Buy Data — step by step, same as the website: pick a network, then a
+/// plan type (SME, Gifting, ...), then a plan, and only then the phone
+/// number, PIN and Buy button appear.
 class BuyDataScreen extends StatefulWidget {
   const BuyDataScreen({super.key});
   @override
@@ -15,10 +17,14 @@ class BuyDataScreen extends StatefulWidget {
 
 class _BuyDataScreenState extends State<BuyDataScreen> {
   final _api = ApiService();
+  final _phoneCtrl = TextEditingController();
+  final _pinCtrl = TextEditingController();
   List<dynamic> _plans = [];
   bool _loading = true;
+  bool _busy = false;
   String? _network;
   String? _type;
+  Map<String, dynamic>? _plan;
 
   @override
   void initState() {
@@ -32,10 +38,6 @@ class _BuyDataScreenState extends State<BuyDataScreen> {
     setState(() {
       _plans = res['success'] == true ? res['data_plans'] : [];
       _loading = false;
-      final nets = _networks;
-      _network = nets.isNotEmpty ? nets.first : null;
-      _type = null;
-      _selectFirstType();
     });
   }
 
@@ -58,78 +60,36 @@ class _BuyDataScreenState extends State<BuyDataScreen> {
     return seen;
   }
 
-  void _selectFirstType() {
+  // A network with only one plan type ("General") skips the type step.
+  bool get _skipTypeStep {
     final t = _types;
-    _type = t.isNotEmpty ? t.first : null;
+    return t.length == 1 && t.first == 'General';
   }
 
   List<dynamic> get _visiblePlans =>
       _plans.where((p) => '${p['network']}' == _network && '${p['type']}' == _type).toList();
 
-  void _openBuySheet(Map<String, dynamic> plan) {
-    final phoneCtrl = TextEditingController();
-    final pinCtrl = TextEditingController();
-    bool busy = false;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheet) => Padding(
-          padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('${plan['network']} — ${plan['plan_name']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Text('₦${nairaAmount(plan['price'])} • ${plan['validity']}'),
-              const SizedBox(height: 16),
-              TextField(
-                controller: phoneCtrl,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(labelText: tr('Recipient phone'), border: const OutlineInputBorder()),
-              ),
-              const SizedBox(height: 12),
-              PinField(controller: pinCtrl),
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: busy
-                    ? null
-                    : () async {
-                        setSheet(() => busy = true);
-                        Map<String, dynamic> res;
-                        try {
-                          res = await _api.buyData(planId: plan['id'], phone: phoneCtrl.text.trim(), transactionPin: pinCtrl.text);
-                        } catch (e) {
-                          res = {'success': false, 'message': 'Could not reach the server. Please check your connection.'};
-                        }
-                        if (!mounted) return;
-                        Navigator.pop(ctx);
-                        await showPurchaseResult(context, res);
-                      },
-                child: busy
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('Confirm Purchase'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  void _pickNetwork(String n) {
+    setState(() {
+      _network = n;
+      _plan = null;
+      _type = _skipTypeStep ? 'General' : null;
+    });
   }
 
-  Widget _chips(List<String> items, String? selected, void Function(String) onPick) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final it in items)
-          ChoiceChip(
-            label: Text(it),
-            selected: it == selected,
-            onSelected: (_) => onPick(it),
-          ),
-      ],
-    );
+  Future<void> _buy() async {
+    final plan = _plan;
+    if (plan == null) return;
+    setState(() => _busy = true);
+    Map<String, dynamic> res;
+    try {
+      res = await _api.buyData(planId: plan['id'], phone: _phoneCtrl.text.trim(), transactionPin: _pinCtrl.text);
+    } catch (e) {
+      res = {'success': false, 'message': 'Could not reach the server. Please check your connection.'};
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+    await showPurchaseResult(context, res);
   }
 
   @override
@@ -141,27 +101,57 @@ class _BuyDataScreenState extends State<BuyDataScreen> {
           : _plans.isEmpty
               ? const Center(child: Text('No plans have been set up yet. Ask the admin to add some.'))
               : ListView(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   children: [
-                    const Text('Network', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    _chips(_networks, _network, (n) => setState(() { _network = n; _selectFirstType(); })),
-                    const SizedBox(height: 16),
-                    const Text('Plan Type', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    _chips(_types, _type, (t) => setState(() => _type = t)),
-                    const SizedBox(height: 16),
-                    const Text('Plans', style: TextStyle(fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 8),
-                    for (final p in _visiblePlans)
+                    const StepLabel('Select Network'),
+                    ServiceGrid(names: _networks, selected: _network, onPick: _pickNetwork),
+                    if (_network != null && !_skipTypeStep) ...[
+                      const SizedBox(height: 22),
+                      const StepLabel('Plan Type'),
+                      TypeChips(items: _types, selected: _type, onPick: (t) => setState(() { _type = t; _plan = null; })),
+                    ],
+                    if (_network != null && _type != null) ...[
+                      const SizedBox(height: 22),
+                      const StepLabel('Select Data Plan'),
+                      for (final p in _visiblePlans)
+                        PlanCard(
+                          title: '${p['plan_name']} ${p['validity']}',
+                          price: '₦${nairaAmount(p['price'])}',
+                          selected: _plan != null && _plan!['id'] == p['id'],
+                          onTap: () => setState(() => _plan = Map<String, dynamic>.from(p)),
+                        ),
+                    ],
+                    if (_plan != null) ...[
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _phoneCtrl,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(labelText: tr('Phone Number'), hintText: tr('08012345678'), border: const OutlineInputBorder()),
+                      ),
+                      const SizedBox(height: 12),
+                      PinField(controller: _pinCtrl),
+                      const SizedBox(height: 16),
                       Card(
-                        child: ListTile(
-                          title: Text('${p['plan_name']}'),
-                          subtitle: Text('${p['validity']}'),
-                          trailing: Text('₦${nairaAmount(p['price'])}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          onTap: () => _openBuySheet(Map<String, dynamic>.from(p)),
+                        color: Theme.of(context).colorScheme.secondaryContainer,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Amount to be deducted'),
+                              Text('₦${nairaAmount(_plan!['price'])}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         ),
                       ),
+                      const SizedBox(height: 14),
+                      FilledButton(
+                        onPressed: _busy ? null : _buy,
+                        child: _busy
+                            ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Text('Buy Data'),
+                      ),
+                    ],
                   ],
                 ),
     );

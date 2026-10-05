@@ -166,10 +166,17 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
   }
 
   Future<void> _openWhatsApp(String number, String message) async {
+    // Do NOT gate on canLaunchUrl(): on Android 11+ it returns false for
+    // https links unless the manifest declares <queries>, which made this
+    // button always say "Could not open WhatsApp" even with WhatsApp installed.
     final uri = Uri.parse('https://wa.me/${number.replaceAll(RegExp(r'[^0-9]'), '')}?text=${Uri.encodeComponent(message)}');
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else if (mounted) {
+    var ok = false;
+    try {
+      ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      ok = false;
+    }
+    if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open WhatsApp.')));
     }
   }

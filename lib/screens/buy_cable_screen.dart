@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
 import '../currency.dart';
 import '../widgets/pin_field.dart';
+import '../widgets/service_picker.dart';
 import '../purchase_result.dart';
 import '../services/api_service.dart';
 
@@ -41,14 +42,6 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
     final res = await _api.cablePlans();
     setState(() {
       _plans = res['success'] == true ? res['cable_plans'] : [];
-      // Default to whichever provider actually has plans configured,
-      // in the usual DSTV/GOTV/STARTIMES order.
-      _selectedProvider = _providers.firstWhere(
-        (p) => _plans.any((pl) => pl['provider'] == p),
-        orElse: () => _providers.first,
-      );
-      final forProvider = _plans.where((p) => p['provider'] == _selectedProvider).toList();
-      _selectedPlan = forProvider.isNotEmpty ? forProvider.first : null;
       _loading = false;
     });
   }
@@ -56,8 +49,7 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
   void _onProviderChanged(String provider) {
     setState(() {
       _selectedProvider = provider;
-      final forProvider = _plansForSelectedProvider;
-      _selectedPlan = forProvider.isNotEmpty ? forProvider.first : null;
+      _selectedPlan = null;
     });
   }
 
@@ -98,37 +90,30 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
         children: [
           if (_verification == null) ...[
             // ---- STEP 1: pick provider, then package + smartcard, then verify ----
-            const Text('Provider', style: TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: _providers.map((p) {
-                final hasPlans = _plans.any((pl) => pl['provider'] == p);
-                return ChoiceChip(
-                  label: Text(p),
-                  selected: _selectedProvider == p,
-                  onSelected: hasPlans ? (_) => _onProviderChanged(p) : null,
-                );
-              }).toList(),
+            const StepLabel('Select Provider'),
+            ServiceGrid(
+              names: _providers.where((p) => _plans.any((pl) => pl['provider'] == p)).toList(),
+              selected: _selectedProvider,
+              onPick: _onProviderChanged,
             ),
-            const SizedBox(height: 16),
-            const Text('Package', style: TextStyle(fontWeight: FontWeight.bold)),
-            _plansForSelectedProvider.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Text('No packages available for this provider yet.', style: TextStyle(color: Colors.black54)),
-                  )
-                : DropdownButtonFormField<Map<String, dynamic>>(
-                    initialValue: _selectedPlan,
-                    isExpanded: true,
-                    items: _plansForSelectedProvider
-                        .map<DropdownMenuItem<Map<String, dynamic>>>((p) => DropdownMenuItem(
-                              value: p,
-                              child: Text('${p['package_name']} (₦${nairaAmount(p['price'])})'),
-                            ))
-                        .toList(),
-                    onChanged: (v) => setState(() => _selectedPlan = v),
+            if (_selectedProvider != null) ...[
+              const SizedBox(height: 22),
+              const StepLabel('Select Package'),
+              if (_plansForSelectedProvider.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text('No packages available for this provider yet.', style: TextStyle(color: Colors.black54)),
+                )
+              else
+                for (final p in _plansForSelectedProvider)
+                  PlanCard(
+                    title: '${p['package_name']}',
+                    price: '₦${nairaAmount(p['price'])}',
+                    selected: _selectedPlan != null && _selectedPlan!['id'] == p['id'],
+                    onTap: () => setState(() => _selectedPlan = Map<String, dynamic>.from(p)),
                   ),
+            ],
+            if (_selectedPlan != null) ...[
             const SizedBox(height: 12),
             TextField(
               controller: _smartcardCtrl,
@@ -139,6 +124,7 @@ class _BuyCableScreenState extends State<BuyCableScreen> {
               onPressed: _busy ? null : _verify,
               child: _busy ? const CircularProgressIndicator() : const Text('Verify Name & Continue'),
             ),
+            ],
           ] else ...[
             // ---- STEP 2: confirm name + amount, enter phone/PIN, pay ----
             Card(

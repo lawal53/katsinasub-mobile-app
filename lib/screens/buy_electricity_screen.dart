@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
 import '../currency.dart';
 import '../widgets/pin_field.dart';
+import '../widgets/service_picker.dart';
 import '../purchase_result.dart';
 import '../services/api_service.dart';
 
@@ -38,7 +39,6 @@ class _BuyElectricityScreenState extends State<BuyElectricityScreen> {
     setState(() {
       _discos = res['success'] == true ? res['discos'] : [];
       _charges = res['success'] == true && res['charges'] is Map ? Map<String, dynamic>.from(res['charges']) : {};
-      _selectedDisco = _discos.isNotEmpty ? _discos.first : null;
       _loading = false;
     });
   }
@@ -111,22 +111,19 @@ class _BuyElectricityScreenState extends State<BuyElectricityScreen> {
         children: [
           if (_verification == null) ...[
             // ---- STEP 1: pick disco + meter, then verify ----
-            const Text('Electricity Company (Disco)', style: TextStyle(fontWeight: FontWeight.bold)),
-            DropdownButtonFormField<String>(
-              initialValue: _selectedDisco,
-              isExpanded: true,
-              items: _discos.map<DropdownMenuItem<String>>((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-              onChanged: (v) => setState(() => _selectedDisco = v),
+            const StepLabel('Select Disco'),
+            ServiceGrid(
+              names: _discos.map<String>((d) => '$d').toList(),
+              selected: _selectedDisco,
+              onPick: (d) => setState(() => _selectedDisco = d),
             ),
-            const SizedBox(height: 12),
-            const Text('Meter Type', style: TextStyle(fontWeight: FontWeight.bold)),
-            SegmentedButton<String>(
-              segments: const [
-                ButtonSegment(value: 'prepaid', label: Text('Prepaid')),
-                ButtonSegment(value: 'postpaid', label: Text('Postpaid')),
-              ],
-              selected: {_meterType},
-              onSelectionChanged: (s) => setState(() => _meterType = s.first),
+            if (_selectedDisco != null) ...[
+            const SizedBox(height: 22),
+            const StepLabel('Meter Type'),
+            TypeChips(
+              items: const ['prepaid', 'postpaid'],
+              selected: _meterType,
+              onPick: (t) => setState(() => _meterType = t),
             ),
             const SizedBox(height: 12),
             TextField(
@@ -138,6 +135,7 @@ class _BuyElectricityScreenState extends State<BuyElectricityScreen> {
               onPressed: _busy ? null : _verify,
               child: _busy ? const CircularProgressIndicator() : const Text('Verify Name & Continue'),
             ),
+            ],
           ] else ...[
             // ---- STEP 2: confirm name, enter phone/amount/PIN, pay ----
             Card(

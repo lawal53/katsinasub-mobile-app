@@ -179,6 +179,8 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('${t['created_at']}', style: const TextStyle(fontSize: 12)),
+            if ('${t['recipient_phone'] ?? ''}'.isNotEmpty && '${t['recipient_phone']}' != 'null')
+              Text('${t['recipient_phone']}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
             Text('₦${nairaAmount(t['balance_before'])} → ₦${nairaAmount(t['balance_after'])}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
             Text(statusLabel(status), style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor(status))),
           ],

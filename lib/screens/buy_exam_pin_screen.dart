@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
 import '../currency.dart';
 import '../widgets/pin_field.dart';
+import '../widgets/service_picker.dart';
 import '../purchase_result.dart';
 import '../services/api_service.dart';
 
@@ -32,7 +33,6 @@ class _BuyExamPinScreenState extends State<BuyExamPinScreen> {
     final res = await _api.examPlans();
     setState(() {
       _exams = res['success'] == true ? res['exams'] : [];
-      _selectedExam = _exams.isNotEmpty ? _exams.first['exam_name'] : null;
       _loading = false;
     });
   }
@@ -72,16 +72,15 @@ class _BuyExamPinScreenState extends State<BuyExamPinScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text('Select Exam', style: TextStyle(fontWeight: FontWeight.bold)),
-          Wrap(
-            spacing: 8,
-            children: _exams.map<Widget>((e) => ChoiceChip(
-                  label: Text('${e['exam_name']} (₦${nairaAmount(e['price'])})'),
-                  selected: _selectedExam == e['exam_name'],
-                  onSelected: (_) => setState(() => _selectedExam = e['exam_name']),
-                )).toList(),
+          const StepLabel('Select Examination'),
+          ServiceGrid(
+            names: _exams.map<String>((e) => '${e['exam_name']}').toList(),
+            subtitles: {for (final e in _exams) '${e['exam_name']}': '₦${nairaAmount(e['price'])}'},
+            selected: _selectedExam,
+            onPick: (n) => setState(() => _selectedExam = n),
           ),
-          const SizedBox(height: 12),
+          if (_selectedExam != null) ...[
+          const SizedBox(height: 22),
           TextField(
             controller: _qtyCtrl,
             keyboardType: TextInputType.number,
@@ -112,6 +111,7 @@ class _BuyExamPinScreenState extends State<BuyExamPinScreen> {
             onPressed: _busy || _selectedExam == null ? null : _submit,
             child: _busy ? const CircularProgressIndicator() : const Text('Buy Pin'),
           ),
+          ],
         ],
       ),
     );

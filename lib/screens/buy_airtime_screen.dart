@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
 import '../currency.dart';
 import '../widgets/pin_field.dart';
+import '../widgets/service_picker.dart';
 import '../purchase_result.dart';
 import '../services/api_service.dart';
 
@@ -35,7 +36,6 @@ class _BuyAirtimeScreenState extends State<BuyAirtimeScreen> {
     final res = await _api.networks();
     setState(() {
       _networks = res['success'] == true ? res['networks'] : [];
-      _selectedNetwork = _networks.isNotEmpty ? _networks.first['name'] : null;
       if (res['success'] == true) {
         _minAmount = (res['min_amount'] as num?)?.toDouble() ?? 50;
         _maxAmount = (res['max_amount'] as num?)?.toDouble() ?? 0;
@@ -107,16 +107,14 @@ class _BuyAirtimeScreenState extends State<BuyAirtimeScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          const Text('Network', style: TextStyle(fontWeight: FontWeight.bold)),
-          Wrap(
-            spacing: 8,
-            children: _networks.map<Widget>((n) => ChoiceChip(
-                  label: Text(n['name']),
-                  selected: _selectedNetwork == n['name'],
-                  onSelected: (_) => setState(() => _selectedNetwork = n['name']),
-                )).toList(),
+          const StepLabel('Select Network'),
+          ServiceGrid(
+            names: _networks.map<String>((n) => '${n['name']}').toList(),
+            selected: _selectedNetwork,
+            onPick: (n) => setState(() => _selectedNetwork = n),
           ),
-          const SizedBox(height: 16),
+          if (_selectedNetwork != null) ...[
+          const SizedBox(height: 22),
           TextField(
             controller: _phoneCtrl,
             keyboardType: TextInputType.phone,
@@ -153,6 +151,7 @@ class _BuyAirtimeScreenState extends State<BuyAirtimeScreen> {
             onPressed: _submitting || _selectedNetwork == null || !_amountInRange ? null : () => _submit(),
             child: _submitting ? const CircularProgressIndicator() : const Text('Buy Airtime'),
           ),
+          ],
         ],
       ),
     );
