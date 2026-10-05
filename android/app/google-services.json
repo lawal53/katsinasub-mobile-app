@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "245580825049",
+    "project_id": "kstsinasub",
+    "storage_bucket": "kstsinasub.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:245580825049:android:f8a9db2384ec0ee5ca19c8",
+        "android_client_info": {
+          "package_name": "com.katsinasub.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZtZQd3KAmCbKCgKsM1In0kErpVwWBS5U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:245580825049:android:0398ce17e2bb850aca19c8",
+        "android_client_info": {
+          "package_name": "com.kstsinasub.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBZtZQd3KAmCbKCgKsM1In0kErpVwWBS5U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
