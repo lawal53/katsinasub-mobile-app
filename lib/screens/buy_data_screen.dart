@@ -77,18 +77,46 @@ class _BuyDataScreenState extends State<BuyDataScreen> {
     });
   }
 
-  Future<void> _buy() async {
+  Future<void> _buy({bool confirmedMismatch = false}) async {
     final plan = _plan;
     if (plan == null) return;
     setState(() => _busy = true);
     Map<String, dynamic> res;
     try {
-      res = await _api.buyData(planId: plan['id'], phone: _phoneCtrl.text.trim(), transactionPin: _pinCtrl.text);
+      res = await _api.buyData(
+        planId: plan['id'],
+        phone: _phoneCtrl.text.trim(),
+        transactionPin: _pinCtrl.text,
+        confirmedMismatch: confirmedMismatch,
+      );
     } catch (e) {
       res = {'success': false, 'message': 'Could not reach the server. Please check your connection.'};
     }
     if (!mounted) return;
     setState(() => _busy = false);
+
+    // The server replies with confirm_required=true when the phone number
+    // looks like it belongs to a different network than the one selected
+    // (e.g. a ported number) — same as the website: show the warning and let
+    // the customer confirm to continue, or cancel and change the network.
+    if (res['confirm_required'] == true) {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          icon: const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 44),
+          title: const Text('Network mismatch'),
+          content: Text('${res['message'] ?? ''}', textAlign: TextAlign.center),
+          actionsAlignment: MainAxisAlignment.center,
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text("Yes, it's $_network")),
+          ],
+        ),
+      );
+      if (confirm == true && mounted) await _buy(confirmedMismatch: true);
+      return;
+    }
+
     await showPurchaseResult(context, res);
   }
 
