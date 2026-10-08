@@ -301,4 +301,5 @@ const Map<String, String> kHausa = {
   'Select Package': 'Zaɓi Package',
   'Select Disco': 'Zaɓi Kamfanin Wuta',
   'Select Examination': 'Zaɓi Jarabawa',
+  'Response': 'Amsa',
 };
