@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
 import '../services/api_service.dart';
+import '../widgets/linkified_text.dart';
 import 'receipt_screen.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -36,7 +37,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     final reference = n['reference'] as String?;
                     return ListTile(
                       title: Text(n['title'], style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(n['message']),
+                      subtitle: LinkifiedText('${n['message']}', style: Theme.of(context).textTheme.bodyMedium),
                       trailing: (reference == null || reference.isEmpty)
                           ? Text(n['created_at'].toString().substring(5, 16), style: const TextStyle(fontSize: 11))
                           : const Icon(Icons.chevron_right, size: 20, color: Colors.black38),
