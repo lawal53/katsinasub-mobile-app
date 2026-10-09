@@ -19,6 +19,24 @@ import 'screens/receipt_screen.dart';
 /// wouldn't find this app's Navigator).
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
+/// A notification about a transaction was tapped before the app was ready
+/// to navigate (app was closed / still on the splash). The start-up gate
+/// opens it as soon as the dashboard is showing.
+String? pendingReceiptReference;
+bool appReadyForNavigation = false;
+
+/// Opens a transaction's receipt from a tapped notification (a push in the
+/// tray, or the popup shown while the app is open).
+void openReceiptFromNotification(String? reference) {
+  if (reference == null || reference.isEmpty) return;
+  final nav = rootNavigatorKey.currentState;
+  if (appReadyForNavigation && nav != null) {
+    nav.push(MaterialPageRoute(builder: (_) => ReceiptScreen(reference: reference)));
+  } else {
+    pendingReceiptReference = reference;
+  }
+}
+
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
 
@@ -54,7 +72,14 @@ Future<void> main() async {
       android: initializationSettingsAndroid,
     );
 
-    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+    await flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      // Tapping the popup shown while the app is open (see onMessage below)
+      // opens that transaction's receipt.
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        openReceiptFromNotification(response.payload);
+      },
+    );
 
     final androidPlugin = flutterLocalNotificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
@@ -112,6 +137,7 @@ Future<void> main() async {
               styleInformation: BigTextStyleInformation(body ?? ''),
             ),
           ),
+          payload: message.data['reference']?.toString(),
         );
       }
     });
@@ -122,11 +148,7 @@ Future<void> main() async {
     // Notifications list. Covers both "app was backgrounded" (tapped
     // just now) and "app was fully closed" (tapped to launch it).
     void handlePushTap(RemoteMessage message) {
-      final reference = message.data['reference'];
-      if (reference == null || reference.toString().isEmpty) return;
-      rootNavigatorKey.currentState?.push(
-        MaterialPageRoute(builder: (_) => ReceiptScreen(reference: reference.toString())),
-      );
+      openReceiptFromNotification(message.data['reference']?.toString());
     }
 
     FirebaseMessaging.onMessageOpenedApp.listen(handlePushTap);
@@ -276,6 +298,16 @@ class _StartupGateState extends State<_StartupGate> {
         } catch (e) { /* if this fails, fall through unlocked rather than block startup */ }
       }
       setState(() { _loggedIn = v; _checking = false; });
+      // The app is now showing the dashboard/login. If a notification was
+      // tapped while it was starting up, open that receipt now.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        appReadyForNavigation = true;
+        final ref = pendingReceiptReference;
+        pendingReceiptReference = null;
+        if (v && ref != null && ref.isNotEmpty) {
+          rootNavigatorKey.currentState?.push(MaterialPageRoute(builder: (_) => ReceiptScreen(reference: ref)));
+        }
+      });
     });
   }
 
