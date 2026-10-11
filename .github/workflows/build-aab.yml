@@ -1,4 +1,4 @@
-name: Build Android App Bundle
+name: Build Android APK
 
 on:
   workflow_dispatch: {}
@@ -32,17 +32,14 @@ jobs:
           chmod +x scripts/patch-android.sh
           ./scripts/patch-android.sh
 
-      - name: Write upload keystore from secret
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
-
       - name: Get Flutter packages
         run: flutter pub get
 
-      - name: Build release App Bundle (.aab)
-        run: flutter build appbundle --release
+      - name: Build release APK
+        run: flutter build apk --release
 
-      - name: Upload .aab as workflow artifact
+      - name: Upload .apk as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-aab
-          path: build/app/outputs/bundle/release/app-release.aab
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
