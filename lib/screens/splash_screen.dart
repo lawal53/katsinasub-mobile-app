@@ -61,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen> {
             const Spacer(flex: 4),
             const Padding(
               padding: EdgeInsets.only(bottom: 20),
-              child: Text('Dev. By Ks. D. S. Ltd', style: TextStyle(color: Colors.white54, fontSize: 13), textAlign: TextAlign.center),
+              child: Text('Developed by K D S Developers', style: TextStyle(color: Colors.white54, fontSize: 14), textAlign: TextAlign.center),
             ),
           ],
         ),
