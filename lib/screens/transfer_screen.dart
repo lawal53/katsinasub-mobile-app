@@ -8,7 +8,7 @@ import '../services/api_service.dart';
 import 'verify_contact_screen.dart';
 import 'transfer_limit_request_screen.dart';
 
-/// "Transfer To Katsinasub User" — send wallet money to another customer
+/// "Transfer To KATSINASUB User" — send wallet money to another customer
 /// by their email, phone number, or username. Same rules as the website:
 /// the sender must have a verified email, and is capped at their own
 /// transfer limit (shown here, with a link to request a higher one).
@@ -113,7 +113,7 @@ class _TransferScreenState extends State<TransferScreen> {
   Widget build(BuildContext context) {
     if (_loading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     return Scaffold(
-      appBar: AppBar(title: const Text('Transfer To Katsinasub User')),
+      appBar: AppBar(title: const Text('Transfer To KATSINASUB User')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -138,7 +138,7 @@ class _TransferScreenState extends State<TransferScreen> {
                 ],
               ),
             ),
-          const Text('Transfers to other KatsinaSub users are free — no charges — and complete instantly.', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Colors.green)),
+          const Text('Transfers to other KATSINASUB users are free — no charges — and complete instantly.', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Colors.green)),
           const SizedBox(height: 4),
           Text('Your daily limit: ₦${nairaAmount(_limit)}', style: const TextStyle(fontSize: 12.5, color: Colors.black54)),
           TextButton(
