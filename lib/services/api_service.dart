@@ -479,7 +479,9 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
-  // ---- Support ----
+    // ---- Support ----
   Future<Map<String, dynamic>> supportInfo() async {
     final res = await http.get(Uri.parse('$baseUrl/support-info.php'), headers: await _authHeaders());
-    return jsonDecod
+    return jsonDecode(res.body);
+  }
+}
