@@ -250,7 +250,7 @@ const Map<String, String> kHausa = {
   'Pending': 'Ana jira',
   'View Receipt': 'Duba Rasit',
   'Receipt': 'Rasit',
-  'Thank you for using Katsinasub': 'Mun gode da amfani da Katsinasub',
+  'Thank you for using KATSINASUB': 'Mun gode da amfani da KATSINASUB',
   'Transaction History': 'Tarihin Transactions',
   'No transactions yet.': 'Babu transaction tukuna.',
   'Load more': 'Ƙara nunawa',
