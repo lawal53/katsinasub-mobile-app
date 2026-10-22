@@ -223,12 +223,31 @@ if ! grep -q "key.properties" "$APP_GRADLE"; then
 
     perl -0777 -pi -e 's/(buildTypes\s*\{)/    signingConfigs {\n        create("release") {\n            keyAlias = keystoreProperties["keyAlias"] as String?\n            keyPassword = keystoreProperties["keyPassword"] as String?\n            storeFile = keystoreProperties["storeFile"]?.let { file(it as String) }\n            storePassword = keystoreProperties["storePassword"] as String?\n        }\n    }\n\n$1/s' "$APP_GRADLE"
 
-    perl -0777 -pi -e 's/(release\s*\{)/$1\n            signingConfig = signingConfigs.getByName("release")/s' "$APP_GRADLE"
+    # FIX: anchor on buildTypes so we hit buildTypes { release { ... } }
+    perl -0777 -pi -e 's/(buildTypes\s*\{\s*release\s*\{)/$1\n            signingConfig = signingConfigs.getByName("release")/s' "$APP_GRADLE"
   else
     perl -0777 -pi -e "s/(android \{)/\$1\n    def keystorePropertiesFile = rootProject.file(\"key.properties\")\n    def keystoreProperties = new Properties()\n    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))\n/s" "$APP_GRADLE"
     perl -0777 -pi -e "s/(buildTypes\s*\{)/    signingConfigs {\n        release {\n            keyAlias keystoreProperties['keyAlias']\n            keyPassword keystoreProperties['keyPassword']\n            storeFile file(keystoreProperties['storeFile'])\n            storePassword keystoreProperties['storePassword']\n        }\n    }\n\$1/s" "$APP_GRADLE"
-    perl -0777 -pi -e "s/(release\s*\{)/\$1\n            signingConfig signingConfigs.release/s" "$APP_GRADLE"
+    # FIX: anchor on buildTypes so we do not hit signingConfigs { release { ... } }
+    perl -0777 -pi -e "s/(buildTypes\s*\{\s*release\s*\{)/\$1\n            signingConfig signingConfigs.release/s" "$APP_GRADLE"
   fi
+fi
+
+echo "==> Making sure release builds use the release key, not debug ..."
+# FIX: Flutter's template ships a line inside buildTypes.release that sets
+# signingConfig to the DEBUG key. It sat right below our release line and
+# overrode it (last assignment wins), so the .aab got signed with the debug
+# key and Google Play rejected it. Remove it, then fail loudly if any debug
+# signing is left or the release signing is missing.
+sed -i '/signingConfig = signingConfigs.getByName("debug")/d' "$APP_GRADLE"
+sed -i '/signingConfig signingConfigs.debug/d' "$APP_GRADLE"
+if grep -Eq 'signingConfigs(\.getByName\("debug"\)|\.debug)' "$APP_GRADLE"; then
+  echo "ERROR: release build still points at the debug signing key. Aborting."
+  exit 1
+fi
+if ! grep -Eq 'signingConfigs\.getByName\("release"\)|signingConfig signingConfigs\.release' "$APP_GRADLE"; then
+  echo "ERROR: release build is not wired to the release signing key. Aborting."
+  exit 1
 fi
 
 echo "==> Enabling core library desugaring (required by flutter_local_notifications) ..."
