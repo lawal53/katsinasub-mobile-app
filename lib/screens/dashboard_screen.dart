@@ -281,7 +281,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               child: OutlinedButton.icon(
                 onPressed: () => _openAndRefresh(const TransferScreen()),
                 icon: const Icon(Icons.person_outline, size: 18),
-                label: const Text('Transfer To Katsinasub User'),
+                label: const Text('Transfer To KATSINASUB User'),
                 style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 10)),
               ),
             ),
