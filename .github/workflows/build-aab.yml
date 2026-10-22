@@ -41,6 +41,12 @@ jobs:
       - name: Build release App Bundle (.aab)
         run: flutter build appbundle --release
 
+      - name: Verify .aab is signed with the upload key
+        run: |
+          SHA=$(keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab | grep "SHA1:")
+          echo "$SHA"
+          echo "$SHA" | grep -q "E6:21:EF:CD:A6:E8:E8:E0:CE:CC:AC:23:0C:74:87:7F:AB:89:71:53" || { echo "ERROR: .aab is NOT signed with the upload key"; exit 1; }
+
       - name: Upload .aab as workflow artifact
         uses: actions/upload-artifact@v4
         with:
