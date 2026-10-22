@@ -57,11 +57,11 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            const Text('Katsinasub', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            const Text('KATSINASUB', style: TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             const Spacer(flex: 4),
             const Padding(
               padding: EdgeInsets.only(bottom: 20),
-              child: Text('Dev. by K D S Developers', style: TextStyle(color: Colors.white54, fontSize: 13), textAlign: TextAlign.center),
+              child: Text('Developed by K D S Developers', style: TextStyle(color: Colors.white54, fontSize: 13), textAlign: TextAlign.center),
             ),
           ],
         ),
