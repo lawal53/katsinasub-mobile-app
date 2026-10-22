@@ -262,7 +262,7 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
-  // ---- Transfer To Katsinasub User ----
+  // ---- Transfer To KATSINASUB User ----
   Future<Map<String, dynamic>> transfer({required String identifier, required double amount, required String transactionPin}) async {
     final res = await http.post(Uri.parse('$baseUrl/transfer.php'), headers: await _authHeaders(),
         body: jsonEncode({'identifier': identifier, 'amount': amount, 'transaction_pin': transactionPin}));
@@ -482,6 +482,4 @@ class ApiService {
   // ---- Support ----
   Future<Map<String, dynamic>> supportInfo() async {
     final res = await http.get(Uri.parse('$baseUrl/support-info.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
-  }
-}
+    return jsonDecod
