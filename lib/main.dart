@@ -46,7 +46,7 @@ final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 // background/terminated-app pushes instead of popping them up.
 const AndroidNotificationChannel notificationChannel = AndroidNotificationChannel(
   'katsinasub_popups_v4',
-  'Katsinasub Direct Popups',
+  'KATSINASUB Direct Popups',
   description: 'Mafi girman matsayi na sanarwa mai pop-up.',
   importance: Importance.max,
   playSound: true,
@@ -118,7 +118,7 @@ Future<void> main() async {
       if (title != null || body != null) {
         flutterLocalNotificationsPlugin.show(
           DateTime.now().millisecondsSinceEpoch ~/ 1000,
-          title ?? 'Katsinasub',
+          title ?? 'KATSINASUB',
           body ?? '',
           NotificationDetails(
             android: AndroidNotificationDetails(
@@ -208,7 +208,7 @@ class _VtuAppState extends State<VtuApp> with WidgetsBindingObserver {
     return ValueListenableBuilder<ThemeMode>(
       valueListenable: AppTheme.notifier,
       builder: (context, mode, __) => MaterialApp(
-        title: 'Katsinasub',
+        title: 'KATSINASUB',
         debugShowCheckedModeBanner: false,
         navigatorKey: rootNavigatorKey,
         theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF0F9D6B), brightness: Brightness.light),
