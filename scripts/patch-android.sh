@@ -178,7 +178,7 @@ if [ -f "ios/Runner/Info.plist" ] && ! grep -q "NSFaceIDUsageDescription" ios/Ru
   perl -0777 -pi -e "s/(<dict>)/\$1\n\t<key>NSFaceIDUsageDescription<\/key>\n\t<string>Ana amfani da Face ID\/fingerprint don sauri budewa maimakon rubuta PIN.<\/string>/s" ios/Runner/Info.plist
 fi
 
-echo "==> Setting the app's display name to Katsinasub ..."
+echo "==> Setting the app's display name to KATSINASUB ..."
 # flutter create's default AndroidManifest.xml carries
 # android:label="vtu_mobile_app" (the project folder name) — this is
 # the app name shown under the launcher icon on the phone, Settings >
@@ -187,7 +187,7 @@ echo "==> Setting the app's display name to Katsinasub ..."
 # it. Fixed here so a fresh build+install already has it right, with
 # no manual edit or separate script needed.
 if [ -f "$ANDROID_MANIFEST" ]; then
-  sed -i 's/android:label="[^"]*"/android:label="Katsinasub"/' "$ANDROID_MANIFEST"
+  sed -i 's/android:label="[^"]*"/android:label="KATSINASUB"/' "$ANDROID_MANIFEST"
   echo "    $ANDROID_MANIFEST android:label is now:"
   grep "android:label" "$ANDROID_MANIFEST"
 else
@@ -195,8 +195,8 @@ else
 fi
 # Same app-name fix for iOS, in case this is ever built for it too.
 if [ -f "ios/Runner/Info.plist" ]; then
-  perl -0777 -pi -e 's/(<key>CFBundleDisplayName<\/key>\s*<string>)[^<]*(<\/string>)/${1}Katsinasub${2}/s' ios/Runner/Info.plist
-  perl -0777 -pi -e 's/(<key>CFBundleName<\/key>\s*<string>)[^<]*(<\/string>)/${1}Katsinasub${2}/s' ios/Runner/Info.plist
+  perl -0777 -pi -e 's/(<key>CFBundleDisplayName<\/key>\s*<string>)[^<]*(<\/string>)/${1}KATSINASUB${2}/s' ios/Runner/Info.plist
+  perl -0777 -pi -e 's/(<key>CFBundleName<\/key>\s*<string>)[^<]*(<\/string>)/${1}KATSINASUB${2}/s' ios/Runner/Info.plist
 fi
 
 echo "==> Writing android/key.properties from CI secrets ..."
