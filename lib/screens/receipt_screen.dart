@@ -83,7 +83,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
       final ref = widget.reference.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '');
       await Share.shareXFiles(
         [XFile.fromData(bytes, name: 'katsinasub-receipt-$ref.png', mimeType: 'image/png')],
-        text: 'KatsinaSub Receipt — $ref',
+        text: 'KATSINASUB Receipt — $ref',
       );
     } catch (e) {
       if (!mounted) return;
@@ -127,7 +127,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                     children: [
                       Image.asset('assets/logo.png', width: 56, height: 56, fit: BoxFit.contain),
                       const SizedBox(height: 6),
-                      const Text('KatsinaSub', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      const Text('KATSINASUB', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                       const Text('RC 9716377', style: TextStyle(fontSize: 11.5, color: Colors.black54)),
                     ],
                   ),
@@ -178,7 +178,7 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Center(child: Text('Thank you for using Katsinasub', style: TextStyle(fontSize: 12, color: Colors.black54))),
+                const Center(child: Text('Thank you for using KATSINASUB', style: TextStyle(fontSize: 12, color: Colors.black54))),
               ],
             ),
           ),
