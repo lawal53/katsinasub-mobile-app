@@ -91,7 +91,6 @@ Future<void> main() async {
       // pop up correctly the *next* time the app isn't running at all.
       await androidPlugin.createNotificationChannel(notificationChannel);
       await androidPlugin.requestNotificationsPermission();
-      await androidPlugin.requestFullScreenIntentPermission();
     }
 
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
@@ -131,7 +130,6 @@ Future<void> main() async {
               ticker: 'New Notification',
               playSound: true,
               enableVibration: true,
-              fullScreenIntent: true,
               category: AndroidNotificationCategory.reminder,
               visibility: NotificationVisibility.public,
               styleInformation: BigTextStyleInformation(body ?? ''),
