@@ -1,7 +1,7 @@
 name: vtu_mobile_app
 description: Mobile app starter for the VTU platform — shares the same accounts/database as the website via the api/v1/mobile/ REST API.
 publish_to: 'none'
-version: 1.0.0+4
+version: 1.0.0+5
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
