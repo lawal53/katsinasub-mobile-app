@@ -352,9 +352,20 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
-  Future<Map<String, dynamic>> changePin({required String currentPassword, required String newPin, required String confirmPin}) async {
+  Future<Map<String, dynamic>> changePin({required String newPin, required String confirmPin}) async {
     final res = await http.post(Uri.parse('$baseUrl/account-settings.php'), headers: await _authHeaders(),
-        body: jsonEncode({'form': 'pin', 'current_password': currentPassword, 'new_pin': newPin, 'confirm_pin': confirmPin}));
+        body: jsonEncode({'form': 'pin', 'new_pin': newPin, 'confirm_pin': confirmPin}));
+    return jsonDecode(res.body);
+  }
+
+  // ---- Delete account (admin approves or rejects) ----
+  Future<Map<String, dynamic>> deleteAccountStatus() async {
+    final res = await http.get(Uri.parse('$baseUrl/delete-account.php'), headers: await _authHeaders());
+    return jsonDecode(res.body);
+  }
+
+  Future<Map<String, dynamic>> requestAccountDeletion({required String reason}) async {
+    final res = await http.post(Uri.parse('$baseUrl/delete-account.php'), headers: await _authHeaders(), body: jsonEncode({'reason': reason}));
     return jsonDecode(res.body);
   }
 
@@ -479,7 +490,7 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
-    // ---- Support ----
+  // ---- Support ----
   Future<Map<String, dynamic>> supportInfo() async {
     final res = await http.get(Uri.parse('$baseUrl/support-info.php'), headers: await _authHeaders());
     return jsonDecode(res.body);
