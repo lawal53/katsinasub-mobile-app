@@ -39,7 +39,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (res['success'] == true) {
       try { await NotificationService().initAndRegister(); } catch (e) { /* push is optional */ }
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const DashboardScreen()));
+      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const DashboardScreen()), (r) => false);
     } else {
       setState(() => _error = res['message'] ?? 'Registration failed.');
     }
