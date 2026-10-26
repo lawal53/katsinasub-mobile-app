@@ -39,7 +39,7 @@ jobs:
         run: flutter pub get
 
       - name: Build release App Bundle (.aab)
-        run: flutter build appbundle --release
+        run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
 
       - name: Verify .aab is signed with the upload key
         run: |
@@ -52,3 +52,10 @@ jobs:
         with:
           name: app-release-aab
           path: build/app/outputs/bundle/release/app-release.aab
+
+      - name: Upload debug symbols (keep these to read crash reports)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-symbols
+          path: build/symbols
+          if-no-files-found: warn
