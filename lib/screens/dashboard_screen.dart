@@ -26,7 +26,7 @@ import 'transfer_screen.dart';
 import 'checkout_webview_screen.dart';
 import 'fund_wallet_screen.dart';
 import 'support_menu.dart';
-import 'login_screen.dart';
+import 'welcome_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -74,7 +74,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Future<void> _logout() async {
     await _api.logout(fcmToken: NotificationService().currentToken);
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (r) => false);
+    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const WelcomeScreen()), (r) => false);
   }
 
   // Every "Services" tile and every drawer item goes through this so the
