@@ -313,4 +313,5 @@ const Map<String, String> kHausa = {
   'Bank': 'Banki',
   'Account Number': 'Lambar Asusu',
   'Account Name': 'Sunan Asusu',
-};
+  'WELLCOME TO KATSINASUB': 'BARKA DA ZUWA KATSINASUB',
+  'Airtime, 
