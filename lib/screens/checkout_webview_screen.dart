@@ -24,13 +24,28 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
   @override
   void initState() {
     super.initState();
+    final startUri = Uri.tryParse(widget.url);
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(
         onPageStarted: (_) => setState(() => _loading = true),
         onPageFinished: (_) => setState(() => _loading = false),
-      ))
-      ..loadRequest(Uri.parse(widget.url));
+        // Payment pages must stay on HTTPS. Anything else (http:, file:,
+        // javascript:, intent: ...) is refused for the main page; frames
+        // inside the page (e.g. a bank's 3-D Secure box) are left alone.
+        onNavigationRequest: (NavigationRequest request) {
+          if (!request.isMainFrame) return NavigationDecision.navigate;
+          final target = Uri.tryParse(request.url);
+          return (target != null && target.scheme == 'https')
+              ? NavigationDecision.navigate
+              : NavigationDecision.prevent;
+        },
+      ));
+    if (startUri != null && startUri.scheme == 'https') {
+      _controller.loadRequest(startUri);
+    } else {
+      _loading = false; // never open a non-HTTPS payment page
+    }
   }
 
   @override
