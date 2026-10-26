@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import 'checkout_webview_screen.dart';
+import 'manual_fund_screen.dart';
 
 class FundWalletScreen extends StatefulWidget {
   const FundWalletScreen({super.key});
@@ -273,24 +274,14 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
                   const Text('Manual Fund', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 6),
                   if (manual['account_number'] != null && manual['account_number'] != '') ...[
-                    _row('Bank', manual['bank_name']),
-                    _row('Account Number', manual['account_number'], copyable: true),
-                    _row('Account Name', manual['account_name']),
-                    const SizedBox(height: 10),
-                    const Text('After sending, contact support via WhatsApp with your receipt.', style: TextStyle(fontSize: 12.5)),
-                    if (manual['whatsapp_number'] != null && '${manual['whatsapp_number']}'.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF25D366)),
-                        onPressed: () => _openWhatsApp(
-                          '${manual['whatsapp_number']}',
-                          'Hello, I just sent money to ${manual['account_name']} (${manual['account_number']}). '
-                          'My username is ${_user?['username'] ?? '-'} and email is ${_user?['email'] ?? '-'}.',
-                        ),
-                        icon: const Icon(Icons.chat),
-                        label: const Text('Send Receipt via WhatsApp'),
-                      ),
-                    ],
+                    const Text('Manually send money to a bank account, then send the receipt via WhatsApp.', style: TextStyle(fontSize: 12.5)),
+                    const SizedBox(height: 12),
+                    OutlinedButton(
+                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => ManualFundScreen(manual: Map<String, dynamic>.from(manual as Map), user: _user),
+                      )),
+                      child: const Text('View Bank Details'),
+                    ),
                   ] else
                     const Text('Admin has not configured Manual Fund details yet.', style: TextStyle(color: Colors.grey)),
                 ],
