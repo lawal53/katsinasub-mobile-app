@@ -3,7 +3,7 @@ import '../l10n.dart';
 import '../services/lock_service.dart';
 import '../services/api_service.dart';
 import '../main.dart' show rootNavigatorKey;
-import 'login_screen.dart';
+import 'welcome_screen.dart';
 
 /// Full-screen PIN pad shown whenever [LockService.instance.locked] is
 /// true — on cold app start (if the account has a transaction PIN) and
@@ -79,7 +79,7 @@ class _LockScreenState extends State<LockScreen> {
     await ApiService().logout();
     _lock.unlock(); // drop the overlay so the login screen underneath is visible
     rootNavigatorKey.currentState?.pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
       (r) => false,
     );
   }
