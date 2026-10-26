@@ -3,6 +3,7 @@ import '../l10n.dart';
 import '../services/api_service.dart';
 import '../services/lock_service.dart';
 import '../services/purchase_pin_service.dart';
+import 'delete_account_screen.dart';
 import 'verify_contact_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
@@ -23,11 +24,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   bool _obscureNewPassword = true;
   bool _obscureConfirmPassword = true;
 
-  final _currentPasswordForPinCtrl = TextEditingController();
+  // Which form is open: only one at a time ('pin' or 'password'), or none.
+  String? _openSection;
+
   final _newPinCtrl = TextEditingController();
   final _confirmPinCtrl = TextEditingController();
   bool _pinBusy = false;
-  bool _obscureCurrentPasswordForPin = true;
   bool _obscureNewPin = true;
   bool _obscureConfirmPin = true;
 
@@ -72,7 +74,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   Future<void> _changePin() async {
     setState(() => _pinBusy = true);
     final res = await _api.changePin(
-      currentPassword: _currentPasswordForPinCtrl.text,
       newPin: _newPinCtrl.text,
       confirmPin: _confirmPinCtrl.text,
     );
@@ -80,7 +81,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(res['message'] ?? 'Done')));
     if (res['success'] == true) {
-      _currentPasswordForPinCtrl.clear();
       _newPinCtrl.clear();
       _confirmPinCtrl.clear();
     }
@@ -178,6 +178,75 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     );
   }
 
+  Widget _sectionButton(String key, IconData icon, String label) {
+    final selected = _openSection == key;
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      height: 56,
+      child: selected
+          ? FilledButton.icon(
+              onPressed: () => setState(() => _openSection = null),
+              icon: Icon(icon, size: 20),
+              label: Text(label, textAlign: TextAlign.center),
+            )
+          : OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(side: BorderSide(color: scheme.primary.withOpacity(0.6))),
+              onPressed: () => setState(() => _openSection = key),
+              icon: Icon(icon, size: 20),
+              label: Text(label, textAlign: TextAlign.center),
+            ),
+    );
+  }
+
+  Widget _passwordCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Change Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 12),
+            TextField(controller: _currentPasswordCtrl, obscureText: _obscureCurrentPassword, decoration: InputDecoration(labelText: tr('Current Password'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureCurrentPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureCurrentPassword = !_obscureCurrentPassword)))),
+            const SizedBox(height: 10),
+            TextField(controller: _newPasswordCtrl, obscureText: _obscureNewPassword, decoration: InputDecoration(labelText: tr('New Password'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureNewPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword)))),
+            const SizedBox(height: 10),
+            TextField(controller: _confirmPasswordCtrl, obscureText: _obscureConfirmPassword, decoration: InputDecoration(labelText: tr('Confirm New Password'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword)))),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: _passwordBusy ? null : _changePassword,
+              child: _passwordBusy ? const CircularProgressIndicator() : const Text('Change Password'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _pinCard() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text('Set / Change Transaction PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 6),
+            const Text('Your PIN confirms transactions. Choose a 4-digit PIN, confirm it, then save.', style: TextStyle(fontSize: 12.5)),
+            const SizedBox(height: 12),
+            TextField(controller: _newPinCtrl, obscureText: _obscureNewPin, maxLength: 4, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: tr('New PIN (4 digits)'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureNewPin ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureNewPin = !_obscureNewPin)))),
+            TextField(controller: _confirmPinCtrl, obscureText: _obscureConfirmPin, maxLength: 4, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: tr('Confirm New PIN'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureConfirmPin ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureConfirmPin = !_obscureConfirmPin)))),
+            const SizedBox(height: 8),
+            FilledButton(
+              onPressed: _pinBusy ? null : _changePin,
+              child: _pinBusy ? const CircularProgressIndicator() : const Text('Save PIN'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -220,51 +289,22 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               ),
             ),
           if (_user != null && (_user!['email_verified'] == false || _user!['phone_verified'] == false)) const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text('Change Password', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 12),
-                  TextField(controller: _currentPasswordCtrl, obscureText: _obscureCurrentPassword, decoration: InputDecoration(labelText: tr('Current Password'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureCurrentPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureCurrentPassword = !_obscureCurrentPassword)))),
-                  const SizedBox(height: 10),
-                  TextField(controller: _newPasswordCtrl, obscureText: _obscureNewPassword, decoration: InputDecoration(labelText: tr('New Password'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureNewPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword)))),
-                  const SizedBox(height: 10),
-                  TextField(controller: _confirmPasswordCtrl, obscureText: _obscureConfirmPassword, decoration: InputDecoration(labelText: tr('Confirm New Password'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureConfirmPassword ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword)))),
-                  const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: _passwordBusy ? null : _changePassword,
-                    child: _passwordBusy ? const CircularProgressIndicator() : const Text('Change Password'),
-                  ),
-                ],
-              ),
-            ),
+          Row(
+            children: [
+              Expanded(child: _sectionButton('pin', Icons.pin_outlined, 'Set / Change PIN')),
+              const SizedBox(width: 12),
+              Expanded(child: _sectionButton('password', Icons.lock_outline, 'Change Password')),
+            ],
           ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text('Set / Change Transaction PIN', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 6),
-                  const Text('Your PIN confirms transactions. Enter your password to set a new one.', style: TextStyle(fontSize: 12.5)),
-                  const SizedBox(height: 12),
-                  TextField(controller: _currentPasswordForPinCtrl, obscureText: _obscureCurrentPasswordForPin, decoration: InputDecoration(labelText: tr('Current Password'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureCurrentPasswordForPin ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureCurrentPasswordForPin = !_obscureCurrentPasswordForPin)))),
-                  const SizedBox(height: 10),
-                  TextField(controller: _newPinCtrl, obscureText: _obscureNewPin, maxLength: 4, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: tr('New PIN (4 digits)'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureNewPin ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureNewPin = !_obscureNewPin)))),
-                  TextField(controller: _confirmPinCtrl, obscureText: _obscureConfirmPin, maxLength: 4, keyboardType: TextInputType.number, decoration: InputDecoration(labelText: tr('Confirm New PIN'), border: const OutlineInputBorder(), suffixIcon: IconButton(icon: Icon(_obscureConfirmPin ? Icons.visibility_off : Icons.visibility), onPressed: () => setState(() => _obscureConfirmPin = !_obscureConfirmPin)))),
-                  const SizedBox(height: 8),
-                  FilledButton(
-                    onPressed: _pinBusy ? null : _changePin,
-                    child: _pinBusy ? const CircularProgressIndicator() : const Text('Save PIN'),
-                  ),
-                ],
-              ),
-            ),
+          const SizedBox(height: 12),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            alignment: Alignment.topCenter,
+            child: _openSection == 'pin'
+                ? _pinCard()
+                : _openSection == 'password'
+                    ? _passwordCard()
+                    : const SizedBox(width: double.infinity),
           ),
           const SizedBox(height: 16),
           Card(
@@ -298,6 +338,14 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
               ),
             ),
           ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(foregroundColor: Colors.red.shade700, side: BorderSide(color: Colors.red.shade300), minimumSize: const Size.fromHeight(50)),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DeleteAccountScreen())),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('Delete Account'),
+          ),
+          const SizedBox(height: 12),
         ],
       ),
     );
