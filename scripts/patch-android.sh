@@ -199,6 +199,21 @@ if [ -f "ios/Runner/Info.plist" ]; then
   perl -0777 -pi -e 's/(<key>CFBundleName<\/key>\s*<string>)[^<]*(<\/string>)/${1}KATSINASUB${2}/s' ios/Runner/Info.plist
 fi
 
+echo "==> Hardening AndroidManifest (no backups of app data, no plain-HTTP traffic) ..."
+if [ -f "$ANDROID_MANIFEST" ]; then
+  # allowBackup=false: stops "adb backup" / cloud backup from copying the app's
+  # private data off the phone. usesCleartextTraffic=false: the app may only
+  # talk HTTPS (it already does — every URL in it is https://).
+  for ATTR in allowBackup usesCleartextTraffic; do
+    if grep -q "android:$ATTR=" "$ANDROID_MANIFEST"; then
+      sed -i "s/android:$ATTR=\"[^\"]*\"/android:$ATTR=\"false\"/" "$ANDROID_MANIFEST"
+    else
+      sed -i "0,/<application/s//<application android:$ATTR=\"false\"/" "$ANDROID_MANIFEST"
+    fi
+  done
+  grep -E "allowBackup|usesCleartextTraffic" "$ANDROID_MANIFEST" || true
+fi
+
 echo "==> Writing android/key.properties from CI secrets ..."
 cat > android/key.properties <<EOF
 storePassword=${KEYSTORE_PASSWORD}
