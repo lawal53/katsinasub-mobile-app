@@ -1,4 +1,4 @@
-name: Build Android APK (testing)
+name: Build Android App Bundle
 
 on:
   workflow_dispatch: {}
@@ -38,23 +38,20 @@ jobs:
       - name: Get Flutter packages
         run: flutter pub get
 
-      - name: Build release APK (.apk) for testing
-        run: flutter build apk --release --obfuscate --split-debug-info=build/symbols
+      - name: Build release App Bundle (.aab)
+        run: flutter build appbundle --release --obfuscate --split-debug-info=build/symbols
 
-      - name: Show APK signing certificate (informational)
+      - name: Verify .aab is signed with the upload key
         run: |
-          APKSIGNER=$(ls $ANDROID_HOME/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
-          if [ -n "$APKSIGNER" ]; then
-            "$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk || true
-          else
-            echo "apksigner not found, skipping certificate print"
-          fi
+          SHA=$(keytool -printcert -jarfile build/app/outputs/bundle/release/app-release.aab | grep "SHA1:")
+          echo "$SHA"
+          echo "$SHA" | grep -q "E6:21:EF:CD:A6:E8:E8:E0:CE:CC:AC:23:0C:74:87:7F:AB:89:71:53" || { echo "ERROR: .aab is NOT signed with the upload key"; exit 1; }
 
-      - name: Upload .apk as workflow artifact
+      - name: Upload .aab as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: app-release-aab
+          path: build/app/outputs/bundle/release/app-release.aab
 
       - name: Upload debug symbols (keep these to read crash reports)
         uses: actions/upload-artifact@v4
