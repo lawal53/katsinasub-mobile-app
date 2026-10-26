@@ -8,7 +8,7 @@ import 'services/notification_service.dart';
 import 'services/lock_service.dart';
 import 'theme.dart';
 import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
+import 'screens/welcome_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/lock_screen.dart';
 import 'screens/receipt_screen.dart';
@@ -314,6 +314,6 @@ class _StartupGateState extends State<_StartupGate> {
     if (_checking) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    return _loggedIn ? const DashboardScreen() : const LoginScreen();
+    return _loggedIn ? const DashboardScreen() : const WelcomeScreen();
   }
 }
