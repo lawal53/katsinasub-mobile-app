@@ -208,6 +208,13 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
                   children: [
                     const Text('Pay with Debit/ATM Card', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 10),
+                    // The server already sends this (card_charge_label) — it
+                    // just was never displayed here, unlike the two bank
+                    // transfer sections below and the website.
+                    if (_info!['card_charge_label'] != null) ...[
+                      _row('Charges', _info!['card_charge_label']),
+                      const SizedBox(height: 10),
+                    ],
                     TextField(
                       controller: _amountCtrl,
                       keyboardType: TextInputType.number,
