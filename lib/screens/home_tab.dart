@@ -292,7 +292,7 @@ class _HomeTabState extends State<HomeTab> {
                   ServiceTile(emoji: '💡', label: 'Electricity', onTap: () => _openAndRefresh(const BuyElectricityScreen())),
                   ServiceTile(emoji: '🎓', label: 'Exam Pins', onTap: () => _openAndRefresh(const BuyExamPinScreen())),
                   ServiceTile(emoji: '💬', label: 'Bulk SMS', onTap: () => _openAndRefresh(const BulkSmsScreen())),
-                  ServiceTile(emoji: '🎁', label: 'Reward', onTap: () => widget.onSelectTab(2)),
+                  ServiceTile(emoji: '👥', label: 'Referral', onTap: () => _openAndRefresh(const ReferralScreen())),
                   ServiceTile(
                     icon: Icons.verified_user, iconColor: const Color(0xFF1B9E55), label: 'Bill Payment',
                     onTap: () => _chooser('Bill Payment', [
