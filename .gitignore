@@ -1,0 +1,9 @@
+android/
+ios/
+build/
+.dart_tool/
+.flutter-plugin-dependencies
+*.jks
+*.keystore
+key.properties
+google-services-temp.json
