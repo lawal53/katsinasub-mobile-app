@@ -77,19 +77,39 @@ class ManualFundScreen extends StatelessWidget {
               ),
             )
           else ...[
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text('Send Money To', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 6),
-                    _row(context, 'Bank', manual['bank_name']?.toString()),
-                    _row(context, 'Account Number', accountNumber, copyable: true),
-                    _row(context, 'Account Name', accountName),
-                  ],
-                ),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFE67E22), Color(0xFFF5B041)]),
+                boxShadow: [BoxShadow(color: const Color(0xFFE67E22).withOpacity(0.30), blurRadius: 16, offset: const Offset(0, 8))],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.account_balance, color: Colors.white),
+                      SizedBox(width: 8),
+                      Text('Send Money To', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Text('${manual['bank_name'] ?? ''}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(child: Text(accountNumber, style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: 2))),
+                      IconButton(
+                        style: IconButton.styleFrom(backgroundColor: Colors.white.withOpacity(0.25)),
+                        icon: const Icon(Icons.copy, color: Colors.white, size: 20),
+                        onPressed: () => _copy(context, accountNumber),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(accountName, style: const TextStyle(color: Colors.white, fontSize: 14.5, fontWeight: FontWeight.w700)),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -99,7 +119,13 @@ class ManualFundScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('After You Send Money', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    Row(
+                      children: const [
+                        Icon(Icons.receipt_long_outlined),
+                        SizedBox(width: 8),
+                        Text('After You Send Money', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                      ],
+                    ),
                     const SizedBox(height: 8),
                     const Text(
                       'Click the button below to send your receipt via WhatsApp — admin will review and fund your wallet manually.',

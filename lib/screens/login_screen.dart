@@ -43,12 +43,28 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text('Welcome back', style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 6),
-              const Text('Log in with the same account you use on the website.'),
+              Container(
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(26),
+                  gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF0A1B36), Color(0xFF0B5A4A)]),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text('Welcome back', style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Colors.white)),
+                    SizedBox(height: 6),
+                    Text('Log in with the same account you use on the website.', style: TextStyle(color: Colors.white70)),
+                  ],
+                ),
+              ),
               const SizedBox(height: 24),
               if (_error != null) ...[
-                Text(_error!, style: const TextStyle(color: Colors.red)),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: const Color(0xFFFDECEC), borderRadius: BorderRadius.circular(14)),
+                  child: Text(_error!, style: const TextStyle(color: Color(0xFFB3261E), fontWeight: FontWeight.w600)),
+                ),
                 const SizedBox(height: 12),
               ],
               TextField(

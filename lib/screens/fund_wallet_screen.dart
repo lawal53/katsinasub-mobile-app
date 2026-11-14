@@ -194,32 +194,71 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
         padding: const EdgeInsets.all(20),
         children: [
           if (_info!['monnify_enabled'] == true) ...[
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Text('Pay with Debit/ATM Card', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    const SizedBox(height: 10),
-                    // The server already sends this (card_charge_label) — it
-                    // just was never displayed here, unlike the two bank
-                    // transfer sections below and the website.
-                    if (_info!['card_charge_label'] != null) ...[
-                      _row('Charges', _info!['card_charge_label']),
-                      const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF5B3FD0), Color(0xFF8B6CF0)]),
+                boxShadow: [BoxShadow(color: const Color(0xFF5B3FD0).withOpacity(0.32), blurRadius: 16, offset: const Offset(0, 8))],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.credit_card, color: Colors.white),
+                      const SizedBox(width: 8),
+                      const Expanded(child: Text('Pay with Debit/ATM Card', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16))),
                     ],
-                    TextField(
-                      controller: _amountCtrl,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(labelText: tr('Amount (₦)'), border: OutlineInputBorder()),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_info!['card_charge_label'] != null) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(color: Colors.black.withOpacity(0.18), borderRadius: BorderRadius.circular(12)),
+                      child: Text('Charges: ${_info!['card_charge_label']}', style: const TextStyle(color: Colors.white, fontSize: 12.5)),
                     ),
                     const SizedBox(height: 12),
-                    if (_info!['monnify_enabled'] == true)
-                      FilledButton(onPressed: _busy ? null : () => _pay('monnify'), child: const Text('Pay with Card (Monnify)')),
-                    if (_busy) const Padding(padding: EdgeInsets.only(top: 10), child: Center(child: CircularProgressIndicator())),
                   ],
-                ),
+                  TextField(
+                    controller: _amountCtrl,
+                    keyboardType: TextInputType.number,
+                    style: const TextStyle(color: Colors.black87),
+                    decoration: InputDecoration(
+                      labelText: tr('Amount (₦)'),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFF5B3FD0)),
+                    onPressed: _busy ? null : () => _pay('monnify'),
+                    child: const Text('Pay with Card (Monnify)'),
+                  ),
+                  if (_busy) const Padding(padding: EdgeInsets.only(top: 10), child: Center(child: CircularProgressIndicator(color: Colors.white))),
+                  const SizedBox(height: 12),
+                  // Monnify offers "Card" or "Bank Transfer". Its bank-transfer account number is
+                  // temporary, so the customer is warned in a few words.
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(color: const Color(0xFFFFF4D6), borderRadius: BorderRadius.circular(14)),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: const [
+                        Text('⚠️ ', style: TextStyle(fontSize: 16)),
+                        Expanded(
+                          child: Text(
+                            'If you pick Bank Transfer on the Monnify page, the account number it shows works for THIS payment only and then expires. Never save it or send money to it again later. Each time, enter the amount to get a new account number.',
+                            style: TextStyle(fontSize: 12.5, height: 1.35, color: Color(0xFF5A4300), fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -257,27 +296,37 @@ class _FundWalletScreenState extends State<FundWalletScreen> {
             ),
           ],
           const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text('Manual Fund', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 6),
-                  if (manual['account_number'] != null && manual['account_number'] != '') ...[
-                    const Text('Manually send money to a bank account, then send the receipt via WhatsApp.', style: TextStyle(fontSize: 12.5)),
-                    const SizedBox(height: 12),
-                    OutlinedButton(
-                      onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => ManualFundScreen(manual: Map<String, dynamic>.from(manual as Map), user: _user),
-                      )),
-                      child: const Text('View Bank Details'),
-                    ),
-                  ] else
-                    const Text('Admin has not configured Manual Fund details yet.', style: TextStyle(color: Colors.grey)),
-                ],
-              ),
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              gradient: const LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFFE67E22), Color(0xFFF5B041)]),
+              boxShadow: [BoxShadow(color: const Color(0xFFE67E22).withOpacity(0.30), blurRadius: 16, offset: const Offset(0, 8))],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  children: const [
+                    Icon(Icons.handshake_outlined, color: Colors.white),
+                    SizedBox(width: 8),
+                    Expanded(child: Text('Manual Fund', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16))),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                if (manual['account_number'] != null && manual['account_number'] != '') ...[
+                  const Text('Send money to our bank account, then send the receipt on WhatsApp. An admin will fund your wallet.', style: TextStyle(color: Colors.white, fontSize: 13, height: 1.35)),
+                  const SizedBox(height: 14),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: Colors.white, foregroundColor: const Color(0xFFB9650F)),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => ManualFundScreen(manual: Map<String, dynamic>.from(manual as Map), user: _user),
+                    )),
+                    child: const Text('View Bank Details'),
+                  ),
+                ] else
+                  const Text('Admin has not configured Manual Fund details yet.', style: TextStyle(color: Colors.white)),
+              ],
             ),
           ),
         ],

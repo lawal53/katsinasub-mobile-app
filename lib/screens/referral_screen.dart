@@ -36,7 +36,22 @@ class _ReferralScreenState extends State<ReferralScreen> {
         padding: const EdgeInsets.all(20),
         children: [
           Card(
-            child: Padding(
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF0B7D55), Color(0xFF3FD39A)])),
+                  child: Row(
+                    children: const [
+                      Icon(Icons.share, color: Colors.white, size: 30),
+                      SizedBox(width: 12),
+                      Expanded(child: Text('Invite friends and earn', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800))),
+                    ],
+                  ),
+                ),
+            Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,6 +118,8 @@ class _ReferralScreenState extends State<ReferralScreen> {
                 ],
               ),
             ),
+              ],
+            ),
           ),
           const SizedBox(height: 20),
           Text('People You\'ve Referred (${_data!['referred_count']})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
@@ -111,6 +128,7 @@ class _ReferralScreenState extends State<ReferralScreen> {
           else
             ...referred.map((r) => Card(
                   child: ListTile(
+                    leading: CircleAvatar(child: Text(r['full_name'].toString().isNotEmpty ? r['full_name'].toString()[0].toUpperCase() : '?')),
                     title: Text(r['full_name']),
                     subtitle: Text(r['email']),
                     trailing: Text(r['created_at'].toString().split(' ').first),
