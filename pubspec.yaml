@@ -1,0 +1,43 @@
+name: vtu_mobile_app
+description: Mobile app starter for the VTU platform — shares the same accounts/database as the website via the api/v1/mobile/ REST API.
+publish_to: 'none'
+version: 1.0.3+5
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  device_info_plus: ^11.2.0
+  app_links: ^6.3.2
+  flutter:
+    sdk: flutter
+  http: ^1.2.0
+  flutter_secure_storage: ^9.0.0
+  webview_flutter: ^4.7.0
+  firebase_core: ^3.6.0
+  firebase_messaging: ^15.1.3
+  flutter_local_notifications: ^18.0.1
+  url_launcher: ^6.3.1
+  file_picker: ^8.1.2
+  local_auth: ^2.3.0
+  flutter_contacts: ^1.1.9+2
+  share_plus: ^10.1.4
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+
+# Generates the Android/iOS launcher icon from assets/logo.png.
+# Run once after `flutter create .` (and again any time logo.png changes):
+#   flutter pub get
+#   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo.png"
