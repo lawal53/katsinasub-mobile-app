@@ -386,4 +386,13 @@ const Map<String, String> kHausa = {
   'All Time': 'Duka Lokaci',
   'Email, Username or Phone Number': 'Email, Username ko Lambar Waya',
   'Terms and Conditions': 'Sharuɗɗa da Ka\'idoji',
+  'KATSINASUB Support': 'Taimakon KATSINASUB',
+  'We reply as soon as we can': 'Muna amsawa da wuri-wuri',
+  'Say hello!': 'Ka yi sallama!',
+  'Ask us anything about your account, wallet or an order. Tap a button below to start quickly.': 'Ka tambaye mu duk abin da ya shafi asusunka, wallet ko wata oda. Ka danna wani maɓalli a ƙasa don farawa da sauri.',
+  'Menu': 'Menu',
+  'Check a transaction': 'Duba transaction',
+  'Fund my wallet': 'Saka kuɗi a wallet',
+  'Talk to a person': 'Magana da mutum',
+  'Invite friends and earn': 'Gayyaci abokai ka samu kuɗi',
 };

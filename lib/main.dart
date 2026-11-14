@@ -41,6 +41,26 @@ void openReceiptFromNotification(String? reference) {
   }
 }
 
+/// One look for the whole app: round cards, round inputs, pill buttons.
+ThemeData _katsinaTheme(Brightness b) {
+  final base = ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF0F9D6B), brightness: b);
+  final scheme = base.colorScheme;
+  return base.copyWith(
+    scaffoldBackgroundColor: b == Brightness.light ? const Color(0xFFF3F9F5) : null,
+    cardTheme: CardThemeData(elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: scheme.outlineVariant.withOpacity(0.6))), margin: const EdgeInsets.symmetric(vertical: 6)),
+    inputDecorationTheme: InputDecorationTheme(
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: scheme.outlineVariant)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: scheme.primary, width: 2)),
+    ),
+    filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(minimumSize: const Size(0, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15))),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(minimumSize: const Size(0, 50), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), textStyle: const TextStyle(fontWeight: FontWeight.w700))),
+    appBarTheme: AppBarTheme(centerTitle: false, scrolledUnderElevation: 0, titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: scheme.onSurface)),
+    snackBarTheme: SnackBarThemeData(behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+    dialogTheme: DialogThemeData(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
+  );
+}
+
 /// A katsinasub.com link opened the app before it was ready to navigate.
 Uri? pendingDeepLink;
 
@@ -269,8 +289,8 @@ class _VtuAppState extends State<VtuApp> with WidgetsBindingObserver {
         title: 'KATSINASUB',
         debugShowCheckedModeBanner: false,
         navigatorKey: rootNavigatorKey,
-        theme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF0F9D6B), brightness: Brightness.light),
-        darkTheme: ThemeData(useMaterial3: true, colorSchemeSeed: const Color(0xFF0F9D6B), brightness: Brightness.dark),
+        theme: _katsinaTheme(Brightness.light),
+        darkTheme: _katsinaTheme(Brightness.dark),
         themeMode: mode,
         home: const _AppRoot(),
         builder: (context, child) {
