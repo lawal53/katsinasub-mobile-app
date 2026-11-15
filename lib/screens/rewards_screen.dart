@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
 import '../format_utils.dart';
+import 'package:share_plus/share_plus.dart';
 import '../services/api_service.dart';
 import 'redeem_reward_screen.dart';
 import 'program_detail_screen.dart';
@@ -39,6 +40,18 @@ class _RewardsScreenState extends State<RewardsScreen> {
   }
 
   List<dynamic> _list(String k) => (_data[k] as List<dynamic>?) ?? [];
+
+  /// The share icon at the top: sends the customer's own referral link.
+  Future<void> _shareReferral() async {
+    try {
+      final r = await _api.referral();
+      final link = '${r['referral_link'] ?? ''}';
+      if (link.isEmpty || link == 'null') throw Exception('no link');
+      await Share.share('Join me on KATSINASUB for fast airtime, data and bill payments. Register with my link: $link');
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not get your referral link. Please try again.')));
+    }
+  }
 
   IconData _icon(String type) => type == 'data' ? Icons.wifi : (type == 'airtime' ? Icons.phone_android : Icons.payments_outlined);
 
@@ -206,7 +219,11 @@ class _RewardsScreenState extends State<RewardsScreen> {
   Widget build(BuildContext context) {
     final items = _list(_tab);
     return Scaffold(
-      appBar: AppBar(title: const Text('Rewards'), automaticallyImplyLeading: false),
+      appBar: AppBar(
+        title: const Text('Rewards'),
+        automaticallyImplyLeading: false,
+        actions: [IconButton(icon: const Icon(Icons.share_outlined), tooltip: 'Share my referral link', onPressed: _shareReferral)],
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(

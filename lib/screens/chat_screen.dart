@@ -200,7 +200,7 @@ class _ChatScreenState extends State<ChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
                 Text('KATSINASUB Support', style: TextStyle(fontSize: 16.5, fontWeight: FontWeight.w800, color: Colors.white)),
-                Text('We reply as soon as we can', style: TextStyle(fontSize: 11.5, color: Colors.white70, fontWeight: FontWeight.w400)),
+                Text('We reply as soon as possible', style: TextStyle(fontSize: 11.5, color: Colors.white70, fontWeight: FontWeight.w400)),
               ],
             ),
           ],

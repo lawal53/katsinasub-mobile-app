@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Text;
+import 'package:share_plus/share_plus.dart';
 import '../l10n.dart';
 import '../currency.dart';
 import 'package:flutter/services.dart';
@@ -44,10 +45,17 @@ class _ReferralScreenState extends State<ReferralScreen> {
                   padding: const EdgeInsets.all(18),
                   decoration: const BoxDecoration(gradient: LinearGradient(colors: [Color(0xFF0B7D55), Color(0xFF3FD39A)])),
                   child: Row(
-                    children: const [
-                      Icon(Icons.share, color: Colors.white, size: 30),
-                      SizedBox(width: 12),
+                    children: [
                       Expanded(child: Text('Invite friends and earn', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800))),
+                      IconButton(
+                        style: IconButton.styleFrom(backgroundColor: Colors.white24),
+                        icon: const Icon(Icons.share, color: Colors.white),
+                        tooltip: 'Share my referral link',
+                        onPressed: () {
+                          final link = '${_data?['referral_link'] ?? ''}';
+                          if (link.isNotEmpty && link != 'null') Share.share('Join me on KATSINASUB for fast airtime, data and bill payments. Register with my link: $link');
+                        },
+                      ),
                     ],
                   ),
                 ),

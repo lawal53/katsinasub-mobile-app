@@ -288,9 +288,9 @@ class _HomeTabState extends State<HomeTab> {
                 children: [
                   ServiceTile(emoji: '📶', label: 'Data', onTap: () => _openAndRefresh(const BuyDataScreen())),
                   ServiceTile(emoji: '📱', label: 'Airtime', onTap: () => _openAndRefresh(const BuyAirtimeScreen())),
-                  ServiceTile(emoji: '📺', label: 'Cable TV', onTap: () => _openAndRefresh(const BuyCableScreen())),
-                  ServiceTile(emoji: '💡', label: 'Electricity', onTap: () => _openAndRefresh(const BuyElectricityScreen())),
                   ServiceTile(emoji: '🎓', label: 'Exam Pins', onTap: () => _openAndRefresh(const BuyExamPinScreen())),
+                  ServiceTile(emoji: '💡', label: 'Electricity', onTap: () => _openAndRefresh(const BuyElectricityScreen())),
+                  ServiceTile(emoji: '📺', label: 'Cable TV', onTap: () => _openAndRefresh(const BuyCableScreen())),
                   ServiceTile(emoji: '💬', label: 'Bulk SMS', onTap: () => _openAndRefresh(const BulkSmsScreen())),
                   ServiceTile(emoji: '👥', label: 'Referral', onTap: () => _openAndRefresh(const ReferralScreen())),
                   ServiceTile(
@@ -487,9 +487,9 @@ class AllServicesScreen extends StatelessWidget {
     final tiles = <ServiceTile>[
       ServiceTile(emoji: '📶', label: 'Data', onTap: () => go(const BuyDataScreen())),
       ServiceTile(emoji: '📱', label: 'Airtime', onTap: () => go(const BuyAirtimeScreen())),
-      ServiceTile(emoji: '📺', label: 'Cable TV', onTap: () => go(const BuyCableScreen())),
-      ServiceTile(emoji: '💡', label: 'Electricity', onTap: () => go(const BuyElectricityScreen())),
       ServiceTile(emoji: '🎓', label: 'Exam Pins', onTap: () => go(const BuyExamPinScreen())),
+      ServiceTile(emoji: '💡', label: 'Electricity', onTap: () => go(const BuyElectricityScreen())),
+      ServiceTile(emoji: '📺', label: 'Cable TV', onTap: () => go(const BuyCableScreen())),
       ServiceTile(emoji: '💬', label: 'Bulk SMS', onTap: () => go(const BulkSmsScreen())),
       ServiceTile(emoji: '🆔', label: 'NIN Verify', onTap: () => go(const NinVerificationScreen())),
       ServiceTile(emoji: '🏦', label: 'BVN Verify', onTap: () => go(const BvnVerificationScreen())),
