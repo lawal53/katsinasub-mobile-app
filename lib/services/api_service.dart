@@ -118,12 +118,31 @@ class ApiService {
     return jsonDecode(res.body);
   }
 
-  Future<Map<String, dynamic>> walletSummary({int page = 1, String category = 'all', String q = ''}) async {
-    final res = await http.get(
-      Uri.parse('$baseUrl/wallet-summary.php?page=$page&category=$category&q=${Uri.encodeQueryComponent(q)}'),
-      headers: await _authHeaders(),
-    );
+  Future<Map<String, dynamic>> walletSummary({
+    int page = 1, String category = 'all', String q = '', String status = 'all', String direction = '', String from = '', String to = '',
+  }) async {
+    final uri = Uri.parse('$baseUrl/wallet-summary.php').replace(queryParameters: {
+      'page': '$page', 'category': category, 'q': q, 'status': status,
+      if (direction.isNotEmpty) 'direction': direction,
+      if (from.isNotEmpty) 'from': from,
+      if (to.isNotEmpty) 'to': to,
+    });
+    final res = await http.get(uri, headers: await _authHeaders());
     return jsonDecode(res.body);
+  }
+
+  /// The statement (CSV text) for the same filters as the History screen; null if it failed.
+  Future<String?> walletStatementCsv({
+    String category = 'all', String q = '', String status = 'all', String direction = '', String from = '', String to = '',
+  }) async {
+    final uri = Uri.parse('$baseUrl/wallet-statement.php').replace(queryParameters: {
+      'category': category, 'q': q, 'status': status,
+      if (direction.isNotEmpty) 'direction': direction,
+      if (from.isNotEmpty) 'from': from,
+      if (to.isNotEmpty) 'to': to,
+    });
+    final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 60));
+    return res.statusCode == 200 ? res.body : null;
   }
 
   Future<Map<String, dynamic>> dataPlans() async {
