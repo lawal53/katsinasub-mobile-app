@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 import '../l10n.dart';
 import '../services/api_service.dart';
+import 'support_menu.dart';
 
 /// Colour + label for a transaction status, shared by history and receipt.
 Color statusColor(String status) {
@@ -105,92 +106,169 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     );
   }
 
+  String? _rowValue(List<dynamic> rows, String label) {
+    for (final r in rows) {
+      if (r is Map && r['label'] == label) return '${r['value']}';
+    }
+    return null;
+  }
+
+  Widget _dashedDivider(Color notch) {
+    return SizedBox(
+      height: 22,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          LayoutBuilder(builder: (context, c) {
+            final n = (c.maxWidth / 9).floor();
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(n, (_) => Container(width: 5, height: 1.5, color: Colors.black26)),
+            );
+          }),
+          Positioned(left: -11, child: Container(width: 22, height: 22, decoration: BoxDecoration(color: notch, shape: BoxShape.circle))),
+          Positioned(right: -11, child: Container(width: 22, height: 22, decoration: BoxDecoration(color: notch, shape: BoxShape.circle))),
+        ],
+      ),
+    );
+  }
+
   Widget _buildReceipt() {
     final status = '${_data!['status']}';
     final rows = (_data!['rows'] as List<dynamic>);
+    final cs = Theme.of(context).colorScheme;
+    final bg = Theme.of(context).scaffoldBackgroundColor;
+    final amount = _rowValue(rows, 'Amount');
+    final before = _rowValue(rows, 'Balance Before');
+    final after = _rowValue(rows, 'Balance After');
+    final Color sc = status == 'refunded' ? const Color(0xFF2F6FED) : statusColor(status);
+    final IconData sIcon = status == 'successful' || status == 'approved'
+        ? Icons.check_circle
+        : (status == 'failed' || status == 'rejected' ? Icons.cancel : (status == 'refunded' ? Icons.undo_rounded : Icons.hourglass_top_rounded));
+    final shown = rows.where((r) => r is Map && !['Amount', 'Balance Before', 'Balance After'].contains(r['label'])).toList();
+
     return ListView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       children: [
         RepaintBoundary(
           key: _captureKey,
           child: Container(
-            // A plain, solid background is required for the capture — a
-            // transparent background would turn black in some share targets.
-            color: Theme.of(context).scaffoldBackgroundColor,
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Column(
-              children: [
-                // Same brand header as the website's printable receipt: logo,
-                // site name, and the company's RC (registration) number.
-                Center(
-                  child: Column(
-                    children: [
-                      Image.asset('assets/logo.png', width: 56, height: 56, fit: BoxFit.contain),
-                      const SizedBox(height: 6),
-                      const Text('KATSINASUB', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                      const Text('RC 9716377', style: TextStyle(fontSize: 11.5, color: Colors.black54)),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                    decoration: BoxDecoration(color: statusColor(status).withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
-                    child: Text(statusLabel(status).toUpperCase(), style: TextStyle(color: statusColor(status), fontWeight: FontWeight.bold)),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Center(child: Text('${_data!['title']}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-                const SizedBox(height: 16),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    child: Column(
-                      children: [
-                        for (final r in rows)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 9),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(flex: 4, child: Text('${r['label']}', style: const TextStyle(color: Colors.black54))),
-                                Expanded(
-                                  flex: 6,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Flexible(child: SelectableText('${r['value']}', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w600))),
-                                      if (r['copy'] == true)
-                                        InkWell(
-                                          onTap: () => _copy('${r['value']}'),
-                                          child: const Padding(padding: EdgeInsets.only(left: 6), child: Icon(Icons.copy, size: 16)),
-                                        ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+            // A plain, solid background is required for the capture.
+            color: bg,
+            padding: const EdgeInsets.all(4),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Container(
+                color: cs.surface,
+                child: Column(
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 46),
+                      decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF0A1B36), Color(0xFF0B7D55), Color(0xFF12A06B)])),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
+                            child: Image.asset('assets/logo.png', width: 46, height: 46, fit: BoxFit.contain),
                           ),
-                      ],
+                          const SizedBox(height: 8),
+                          const Text('KATSINASUB', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1)),
+                          const Text('RC 9716377', style: TextStyle(fontSize: 11.5, color: Colors.white70)),
+                        ],
+                      ),
                     ),
-                  ),
+                    Transform.translate(
+                      offset: const Offset(0, -34),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 68, height: 68,
+                            decoration: BoxDecoration(color: cs.surface, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 4))]),
+                            child: Icon(sIcon, size: 44, color: sc),
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                            decoration: BoxDecoration(color: sc.withOpacity(0.13), borderRadius: BorderRadius.circular(20)),
+                            child: Text(statusLabel(status).toUpperCase(), style: TextStyle(color: sc, fontWeight: FontWeight.w900, letterSpacing: 0.6, fontSize: 12.5)),
+                          ),
+                          const SizedBox(height: 10),
+                          Text('${_data!['title']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          if (amount != null) ...[
+                            const SizedBox(height: 4),
+                            Text(amount, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
+                          ],
+                        ],
+                      ),
+                    ),
+                    Transform.translate(offset: const Offset(0, -20), child: _dashedDivider(bg)),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+                      child: Column(
+                        children: [
+                          for (final r in shown)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(flex: 4, child: Text('${r['label']}', style: const TextStyle(color: Colors.black54, fontSize: 13.5))),
+                                  Expanded(
+                                    flex: 6,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Flexible(child: SelectableText('${r['value']}', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5))),
+                                        if (r['copy'] == true)
+                                          InkWell(
+                                            onTap: () => _copy('${r['value']}'),
+                                            child: const Padding(padding: EdgeInsets.only(left: 6), child: Icon(Icons.copy, size: 16)),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (before != null && after != null)
+                      Container(
+                        margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(color: const Color(0xFF11A06B).withOpacity(0.10), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFF11A06B).withOpacity(0.35))),
+                        child: Row(
+                          children: [
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Balance Before', style: TextStyle(fontSize: 11.5, color: Colors.black54)), const SizedBox(height: 2), FittedBox(fit: BoxFit.scaleDown, child: Text(before, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)))])),
+                            const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0B7D55)),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [const Text('Balance After', style: TextStyle(fontSize: 11.5, color: Colors.black54)), const SizedBox(height: 2), FittedBox(fit: BoxFit.scaleDown, child: Text(after, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0B7D55))))])),
+                          ],
+                        ),
+                      ),
+                    const SizedBox(height: 14),
+                    const Text('Thank you for using KATSINASUB', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                    const Padding(padding: EdgeInsets.fromLTRB(0, 2, 0, 18), child: Text('katsinasub.com', style: TextStyle(fontSize: 11.5, color: Colors.black45))),
+                  ],
                 ),
-                const SizedBox(height: 12),
-                const Center(child: Text('Thank you for using KATSINASUB', style: TextStyle(fontSize: 12, color: Colors.black54))),
-              ],
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 20),
-        OutlinedButton.icon(
+        const SizedBox(height: 18),
+        FilledButton.icon(
           onPressed: _downloading ? null : _downloadReceipt,
-          icon: _downloading
-              ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(Icons.download),
+          icon: _downloading ? const SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.download),
           label: Text(_downloading ? 'Preparing...' : 'Download Receipt'),
-          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+        ),
+        const SizedBox(height: 8),
+        TextButton.icon(
+          onPressed: () => showSupportMenu(context),
+          icon: const Icon(Icons.support_agent),
+          label: const Text('Need help with this transaction?'),
         ),
       ],
     );

@@ -4,7 +4,7 @@ import 'package:share_plus/share_plus.dart';
 import '../l10n.dart';
 import '../currency.dart';
 import '../services/api_service.dart';
-import 'receipt_screen.dart';
+import 'receipt_screen.dart' show ReceiptScreen, statusColor, statusLabel;
 
 /// Transaction History: find any transaction quickly — by type, status, money in / out,
 /// time frame or a search — see totals for what you found, and download a statement.
@@ -26,7 +26,7 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
     'data': 'Data', 'airtime': 'Airtime', 'cable': 'Cable TV', 'electricity': 'Electricity', 'exam': 'Exam Pins',
     'sms': 'Bulk SMS', 'rcard': 'Recharge Card', 'dcard': 'Data Card', 'identity': 'NIN/BVN',
   };
-  static const _statuses = <String, String>{'all': 'All Status', 'successful': 'Successful', 'pending': 'Pending', 'failed': 'Failed'};
+  static const _statuses = <String, String>{'all': 'All Status', 'successful': 'Successful', 'pending': 'Pending', 'failed': 'Failed', 'refunded': 'Refunded'};
   static const _ranges = <String, String>{'all': 'All time', 'today': 'Today', 'week': 'Last week', 'twoweeks': 'Last two weeks', 'month': 'Last 30 days'};
   static const _months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
@@ -346,11 +346,12 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
 
   Widget _statusPill(String status) {
     final s = status.toLowerCase();
-    final Color c = s == 'successful' ? const Color(0xFF1B9E55) : (s == 'failed' ? const Color(0xFFD64545) : const Color(0xFFE67E22));
+    // Same colours and words as the receipt: Successful, Pending, Processing, Failed, Refunded.
+    final Color c = s == 'refunded' ? const Color(0xFF2F6FED) : statusColor(s);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(color: c.withOpacity(0.13), borderRadius: BorderRadius.circular(8)),
-      child: Text(s.isEmpty ? '' : s[0].toUpperCase() + s.substring(1), style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w700)),
+      child: Text(statusLabel(s), style: TextStyle(color: c, fontSize: 11, fontWeight: FontWeight.w700)),
     );
   }
 
@@ -384,6 +385,10 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
                   Text(desc, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                   const SizedBox(height: 3),
                   Text(extra.isEmpty ? time : '$time • $extra', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                  if (t['balance_before'] != null && t['balance_after'] != null) ...[
+                    const SizedBox(height: 2),
+                    Text('Before ₦${nairaAmount(t['balance_before'])}  →  After ₦${nairaAmount(t['balance_after'])}', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                  ],
                 ],
               ),
             ),

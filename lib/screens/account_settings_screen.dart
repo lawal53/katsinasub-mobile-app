@@ -5,6 +5,7 @@ import '../services/lock_service.dart';
 import '../services/purchase_pin_service.dart';
 import 'delete_account_screen.dart';
 import 'change_email_screen.dart';
+import '../services/pin_guard.dart';
 import 'verify_contact_screen.dart';
 
 class AccountSettingsScreen extends StatefulWidget {
@@ -116,11 +117,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     setState(() => _biometricBusy = true);
     final valid = await _lock.verifyPin(pin);
     if (!valid) {
-      setState(() => _biometricBusy = false);
+      final __msg = await PinGuard.recordWrong();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incorrect PIN.')));
+      setState(() => _biometricBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(__msg)));
       return;
     }
+    PinGuard.reset();
     try {
       await _lock.enableBiometric(); // this itself prompts for a fingerprint scan
       setState(() { _biometricOn = true; _biometricBusy = false; });
@@ -150,11 +153,13 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     setState(() => _purchaseFingerprintBusy = true);
     final valid = await _lock.verifyPin(pin);
     if (!valid) {
-      setState(() => _purchaseFingerprintBusy = false);
+      final __msg = await PinGuard.recordWrong();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Incorrect PIN.')));
+      setState(() => _purchaseFingerprintBusy = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(__msg)));
       return;
     }
+    PinGuard.reset();
     final ok = await _purchasePin.enable(pin); // itself prompts for a fingerprint scan
     setState(() { _purchaseFingerprintOn = ok; _purchaseFingerprintBusy = false; });
     if (!ok && mounted) {

@@ -42,6 +42,7 @@ class _HomeTabState extends State<HomeTab> {
   final _api = ApiService();
   Map<String, dynamic>? _user;
   String _notice = '';
+  Map<String, dynamic> _dataUsage = {};
   bool _loading = true;
   bool _balanceHidden = false;
   static const _hideKey = 'balance_hidden';
@@ -73,6 +74,7 @@ class _HomeTabState extends State<HomeTab> {
     setState(() {
       _user = meRes['success'] == true ? meRes['user'] : null;
       _notice = meRes['success'] == true ? '${meRes['home_notice'] ?? ''}'.trim() : '';
+      _dataUsage = meRes['data_usage'] is Map ? Map<String, dynamic>.from(meRes['data_usage']) : {};
       _loading = false;
     });
   }
@@ -217,8 +219,8 @@ class _HomeTabState extends State<HomeTab> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Data Today ${_user?['data_usage']?['today'] ?? '0MB'}', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
-                      Text('All Time ${_user?['data_usage']?['all_time'] ?? '0MB'}', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
+                      Text('Data Today ${_dataUsage['today'] ?? '0MB'}', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
+                      Text('All Time ${_dataUsage['all_time'] ?? '0MB'}', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w800)),
                     ],
                   ),
                 ],
@@ -262,8 +264,7 @@ class _HomeTabState extends State<HomeTab> {
               ],
             ),
             const SizedBox(height: 12),
-            _packageCard(),
-            const SizedBox(height: 18),
+            const SizedBox(height: 6),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

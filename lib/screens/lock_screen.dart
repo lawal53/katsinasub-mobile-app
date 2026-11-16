@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Text;
+import '../services/pin_guard.dart';
 import '../l10n.dart';
 import '../services/lock_service.dart';
 import '../services/api_service.dart';
@@ -69,9 +70,12 @@ class _LockScreenState extends State<LockScreen> {
     final ok = await _lock.verifyPin(_pin);
     if (!mounted) return;
     if (ok) {
+      PinGuard.reset();
       _lock.unlock();
     } else {
-      setState(() { _checking = false; _pin = ''; _error = 'Incorrect PIN, try again.'; });
+      final msg = await PinGuard.recordWrong();
+      if (!mounted) return;
+      setState(() { _checking = false; _pin = ''; _error = msg; });
     }
   }
 

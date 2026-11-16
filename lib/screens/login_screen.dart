@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart' hide Text;
+import '../services/pin_guard.dart';
 import '../l10n.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
@@ -28,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
       try { await NotificationService().initAndRegister(); } catch (e) { /* push is optional */ }
       if (!mounted) return;
       Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const DashboardScreen()), (r) => false);
+      PinGuard.reset();
     } else {
       setState(() => _error = res['message'] ?? 'Login failed.');
     }

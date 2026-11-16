@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
 import 'login_screen.dart';
+import '../services/pin_guard.dart';
 import 'register_screen.dart';
 
 /// The first page a logged-out customer sees. Introduces the company,
@@ -27,6 +28,22 @@ class _WelcomeScreenState extends State<WelcomeScreen> with SingleTickerProvider
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
     _slide = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
         .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
+    final notice = PinGuard.pendingNotice;
+    if (notice != null) {
+      PinGuard.pendingNotice = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            icon: const Icon(Icons.lock_outline, size: 44),
+            title: const Text('Logged out'),
+            content: Text(notice, textAlign: TextAlign.center),
+            actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK'))],
+          ),
+        );
+      });
+    }
   }
 
   @override
