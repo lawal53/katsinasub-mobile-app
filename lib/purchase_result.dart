@@ -3,6 +3,7 @@ import 'l10n.dart';
 import 'screens/receipt_screen.dart';
 import 'screens/account_settings_screen.dart';
 import 'services/api_service.dart';
+import 'services/pin_guard.dart';
 
 /// Shows the outcome of a purchase INSIDE the page the customer bought
 /// from (same behaviour as the website): a clear success / processing /
@@ -15,6 +16,11 @@ Future<void> showPurchaseResult(BuildContext context, Map<String, dynamic> res, 
   final ok = success && !processing;
   final reference = '${res['reference'] ?? ''}';
   var message = '${res['message'] ?? (ok ? 'Done' : 'Something went wrong.')}';
+  if (message.toLowerCase().contains('incorrect pin')) {
+    message = await PinGuard.recordWrong();
+  } else {
+    PinGuard.reset(); // the PIN itself was accepted
+  }
   // A failed order shows EXACTLY the "Response" that its receipt / Transaction
   // History shows, so the customer sees the same words in both places.
   if (!success && reference.isNotEmpty && reference != 'null') {

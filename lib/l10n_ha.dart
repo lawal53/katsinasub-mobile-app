@@ -416,4 +416,7 @@ const Map<String, String> kHausa = {
   'Today': 'Yau',
   'Yesterday': 'Jiya',
   'Share my referral link': 'Tura referral link ɗina',
+  'Logged out': 'An fita daga account',
+  'Need help with this transaction?': 'Kana buƙatar taimako kan wannan transaction?',
+  'Balance Before': 'Balance Kafin',
 };
