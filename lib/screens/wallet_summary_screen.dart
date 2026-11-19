@@ -59,7 +59,13 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
         _load();
       }
     });
-    _load(reset: true);
+    // The unfiltered first page is shown at once from the last visit, then refreshed quietly.
+    final cached = _api.peekHistory();
+    var haveCache = false;
+    if (cached != null && cached['success'] == true) {
+      try { _ingest(cached, replace: true); haveCache = true; } catch (_) {}
+    }
+    _load(reset: true, silent: haveCache);
   }
 
   @override
@@ -69,9 +75,29 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
     super.dispose();
   }
 
-  Future<void> _load({bool reset = false}) async {
+  /// Puts one answer from the server on the screen.
+  void _ingest(Map res, {required bool replace}) {
+    final sum = res['summary'];
+    _balance = (res['wallet_balance'] as num).toDouble();
+    _funded = (res['total_funded'] as num).toDouble();
+    _spent = (res['total_spent'] as num).toDouble();
+    if (sum is Map) {
+      // Totals come with the first page only; scrolling keeps the totals already shown.
+      _in = ((sum['in'] ?? 0) as num).toDouble();
+      _out = ((sum['out'] ?? 0) as num).toDouble();
+      _count = ((sum['count'] ?? 0) as num).toInt();
+    }
+    _page = res['page'] as int;
+    _totalPages = res['total_pages'] as int;
+    if (replace) _txns.clear();
+    _txns.addAll(res['transactions'] as List<dynamic>);
+    _loading = false;
+    _loadingMore = false;
+  }
+
+  Future<void> _load({bool reset = false, bool silent = false}) async {
     if (reset) {
-      setState(() { _loading = true; _error = null; _page = 1; _txns.clear(); });
+      if (!silent) setState(() { _loading = true; _error = null; _page = 1; _txns.clear(); });
     } else {
       setState(() => _loadingMore = true);
     }
@@ -81,26 +107,13 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
       );
       if (!mounted) return;
       if (res['success'] != true) {
-        setState(() { _error = '${res['message'] ?? 'Could not load history.'}'; _loading = false; _loadingMore = false; });
+        setState(() { if (!silent) _error = '${res['message'] ?? 'Could not load history.'}'; _loading = false; _loadingMore = false; });
         return;
       }
-      final sum = (res['summary'] as Map?) ?? {};
-      setState(() {
-        _balance = (res['wallet_balance'] as num).toDouble();
-        _funded = (res['total_funded'] as num).toDouble();
-        _spent = (res['total_spent'] as num).toDouble();
-        _in = ((sum['in'] ?? 0) as num).toDouble();
-        _out = ((sum['out'] ?? 0) as num).toDouble();
-        _count = ((sum['count'] ?? 0) as num).toInt();
-        _page = res['page'] as int;
-        _totalPages = res['total_pages'] as int;
-        _txns.addAll(res['transactions'] as List<dynamic>);
-        _loading = false;
-        _loadingMore = false;
-      });
+      setState(() => _ingest(res, replace: reset));
     } catch (e) {
       if (!mounted) return;
-      setState(() { _error = 'Could not load history.'; _loading = false; _loadingMore = false; });
+      setState(() { if (!silent) _error = 'Could not load history.'; _loading = false; _loadingMore = false; });
     }
   }
 

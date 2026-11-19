@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
+import '../services/api_service.dart';
 import 'home_tab.dart';
 import 'wallet_summary_screen.dart';
 import 'rewards_screen.dart';
@@ -16,6 +17,13 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _index = 0;
   final _visited = <bool>[true, false, false, false, false];
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch the pages the customer is likely to open next, all at once, so each opens instantly.
+    ApiService().warmUp();
+  }
 
   void _go(int i) => setState(() { _index = i; _visited[i] = true; });
 

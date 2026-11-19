@@ -17,7 +17,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    _api.notifications().then((res) => setState(() => _notes = res['success'] == true ? res['notifications'] : []));
+    final cached = _api.peekNotifications();
+    if (cached != null && cached['success'] == true) _notes = cached['notifications'];
+    _api.notifications().then((res) {
+      if (mounted) setState(() => _notes = res['success'] == true ? res['notifications'] : (_notes ?? []));
+    });
   }
 
   @override

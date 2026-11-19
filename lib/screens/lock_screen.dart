@@ -71,6 +71,7 @@ class _LockScreenState extends State<LockScreen> {
     if (!mounted) return;
     if (ok) {
       PinGuard.reset();
+      PinGuard.reset();
       _lock.unlock();
     } else {
       final msg = await PinGuard.recordWrong();
@@ -81,7 +82,8 @@ class _LockScreenState extends State<LockScreen> {
 
   Future<void> _logoutInstead() async {
     await ApiService().logout();
-    _lock.unlock(); // drop the overlay so the login screen underneath is visible
+    PinGuard.reset();
+      _lock.unlock(); // drop the overlay so the login screen underneath is visible
     rootNavigatorKey.currentState?.pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const WelcomeScreen()),
       (r) => false,
