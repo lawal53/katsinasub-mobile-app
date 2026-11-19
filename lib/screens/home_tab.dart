@@ -52,6 +52,13 @@ class _HomeTabState extends State<HomeTab> {
   void initState() {
     super.initState();
     _restoreBalanceHidden();
+    final c = _api.peekMe();
+    if (c != null && c['success'] == true) {
+      _user = c['user'];
+      _notice = '${c['home_notice'] ?? ''}'.trim();
+      _dataUsage = c['data_usage'] is Map ? Map<String, dynamic>.from(c['data_usage']) : {};
+      _loading = false;
+    }
     _load();
   }
 
@@ -72,8 +79,8 @@ class _HomeTabState extends State<HomeTab> {
     final meRes = await _api.me();
     if (!mounted) return;
     setState(() {
-      _user = meRes['success'] == true ? meRes['user'] : null;
-      _notice = meRes['success'] == true ? '${meRes['home_notice'] ?? ''}'.trim() : '';
+      _user = meRes['success'] == true ? meRes['user'] : _user;
+      _notice = meRes['success'] == true ? '${meRes['home_notice'] ?? ''}'.trim() : _notice;
       _dataUsage = meRes['data_usage'] is Map ? Map<String, dynamic>.from(meRes['data_usage']) : {};
       _loading = false;
     });
