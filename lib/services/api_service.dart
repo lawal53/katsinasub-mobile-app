@@ -139,7 +139,7 @@ class ApiService {
       if (to.isNotEmpty) 'to': to,
     });
     final isDefault = page == 1 && category == 'all' && q.isEmpty && status == 'all' && direction.isEmpty && from.isEmpty && to.isEmpty;
-    if (isDefault) return _fetchStore('history:default', uri);
+    if (isDefault) return _getCached('history:default', uri, ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
     final res = await http.get(uri, headers: await _authHeaders());
     return jsonDecode(res.body);
   }
@@ -441,7 +441,7 @@ class ApiService {
 
   // ---- Notifications ----
   Future<Map<String, dynamic>> notifications() async {
-    return _fetchStore('notifications', Uri.parse('$baseUrl/notifications.php'));
+    return _getCached('notifications', Uri.parse('$baseUrl/notifications.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   // ---- Fund Wallet ----
@@ -675,18 +675,16 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> _getCached(String key, Uri uri, {Duration ttl = const Duration(seconds: 25), Duration soft = const Duration(seconds: 15)}) async {
-    final age = ApiCache.age(key);
     final hit = ApiCache.peek(key);
-    if (hit is Map && age != null && age < ttl) {
-      if (age > soft) {
-        // Fresh enough to show now; update it in the background for next time.
-        _fetchStore(key, uri).then((_) {}, onError: (_) {});
-      }
+    if (hit is Map) {
+      // Always open immediately from cache and refresh quietly in the background.
+      _fetchStore(key, uri).then((_) {}, onError: (_) {});
       return Map<String, dynamic>.from(hit);
     }
     return _fetchStore(key, uri);
   }
 
+  Map<String, dynamic>? peekKey(String key) { final c = ApiCache.peek(key); return c is Map ? Map<String, dynamic>.from(c) : null; }
   Map<String, dynamic>? peekMe() { final c = ApiCache.peek('me'); return c is Map ? Map<String, dynamic>.from(c) : null; }
   Map<String, dynamic>? peekNotifications() { final c = ApiCache.peek('notifications'); return c is Map ? Map<String, dynamic>.from(c) : null; }
   Map<String, dynamic>? peekHistory() { final c = ApiCache.peek('history:default'); return c is Map ? Map<String, dynamic>.from(c) : null; }
