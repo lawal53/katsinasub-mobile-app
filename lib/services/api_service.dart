@@ -334,8 +334,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> transferHistory() async {
-    final res = await http.get(Uri.parse('$baseUrl/transfer-history.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('transfer_history', Uri.parse('$baseUrl/transfer-history.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> lookupTransferRecipient(String query) async {
@@ -344,8 +343,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> transferLimitRequests() async {
-    final res = await http.get(Uri.parse('$baseUrl/transfer-limit-request.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('transfer_limit_req', Uri.parse('$baseUrl/transfer-limit-request.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> requestTransferLimit({required double requestedLimit, String reason = ''}) async {
@@ -618,8 +616,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> programDetail(int id) async {
-    final res = await http.get(Uri.parse('$baseUrl/programs.php?id=$id'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('program_detail:$id', Uri.parse('$baseUrl/programs.php?id=$id'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> joinProgram(int id) async {
@@ -693,7 +690,7 @@ class ApiService {
   /// next, all at the same time, so each of them opens instantly.
   Future<void> warmUp() async {
     final jobs = <Future<dynamic>>[
-      me(), walletSummary(), notifications(), rewards(), programs(), referral(), supportInfo(), fundWalletInfo(),
+      me(), walletSummary(), notifications(), rewards(), programs(), transferHistory(), transferLimitRequests(), referral(), supportInfo(), fundWalletInfo(),
       networks(), dataPlans(), cablePlans(), electricityDiscos(), examPlans(), bulkSmsInfo(),
       cardPlans(cardType: 'recharge'), cardPlans(cardType: 'data'), airtimeToCash(), beneficiaries('phone'), beneficiaries('transfer'),
     ];
