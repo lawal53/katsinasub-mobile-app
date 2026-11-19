@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
 import 'services/api_cache.dart';
@@ -364,20 +365,27 @@ class _StartupGateState extends State<_StartupGate> {
   @override
   void initState() {
     super.initState();
-    _api.isLoggedIn().then((v) async {
+    _api.isLoggedIn().then((v) {
+      if (!mounted) return;
       if (v) {
-        try { await NotificationService().initAndRegister(); } catch (e) { /* push is optional */ }
-        // Cold start with an already-saved session is exactly like
-        // reopening the website after being away — always show the
-        // lock screen first if this account has a transaction PIN.
-        try {
-          final me = await _api.me();
-          if (me['success'] == true && me['user']?['has_transaction_pin'] == true) {
-            LockService.instance.locked.value = true;
-          }
-        } catch (e) { /* if this fails, fall through unlocked rather than block startup */ }
+        final cached = _api.peekMe();
+        final cachedHasPin = cached is Map && cached['user'] is Map ? cached['user']['has_transaction_pin'] : null;
+        if (cachedHasPin != false) {
+          LockService.instance.locked.value = true;
+        }
+        setState(() { _loggedIn = true; _checking = false; });
+        unawaited(() async {
+          try { await NotificationService().initAndRegister(); } catch (_) {}
+          try {
+            final me = await _api.me();
+            if (me['success'] == true) {
+              LockService.instance.locked.value = me['user']?['has_transaction_pin'] == true;
+            }
+          } catch (_) {}
+        }());
+      } else {
+        setState(() { _loggedIn = false; _checking = false; });
       }
-      setState(() { _loggedIn = v; _checking = false; });
       // The app is now showing the dashboard/login. If a notification was
       // tapped while it was starting up, open that receipt now.
       WidgetsBinding.instance.addPostFrameCallback((_) {
