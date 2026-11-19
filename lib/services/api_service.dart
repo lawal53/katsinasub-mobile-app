@@ -34,7 +34,6 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> register({
-    ApiCache.clear();
     required String fullName,
     required String username,
     required String phone,
@@ -45,6 +44,7 @@ class ApiService {
     String? deviceId,
     bool acceptTerms = false,
   }) async {
+    ApiCache.clear();
     final res = await _post(
       Uri.parse('$baseUrl/register.php'),
       headers: {'Content-Type': 'application/json'},
@@ -69,10 +69,10 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> login({
-    ApiCache.clear();
     required String loginId,
     required String password,
   }) async {
+    ApiCache.clear();
     final res = await _post(
       Uri.parse('$baseUrl/login.php'),
       headers: {'Content-Type': 'application/json'},
