@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'api_cache.dart';
 
 /// Every screen goes through this one class to talk to the website's
 /// backend. Change [baseUrl] to your real domain before building.
@@ -33,6 +34,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> register({
+    ApiCache.clear();
     required String fullName,
     required String username,
     required String phone,
@@ -43,7 +45,7 @@ class ApiService {
     String? deviceId,
     bool acceptTerms = false,
   }) async {
-    final res = await http.post(
+    final res = await _post(
       Uri.parse('$baseUrl/register.php'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
@@ -67,10 +69,11 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> login({
+    ApiCache.clear();
     required String loginId,
     required String password,
   }) async {
-    final res = await http.post(
+    final res = await _post(
       Uri.parse('$baseUrl/login.php'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
@@ -88,21 +91,20 @@ class ApiService {
 
   Future<void> logout({String? fcmToken}) async {
     final headers = await _authHeaders();
-    await http.post(Uri.parse('$baseUrl/logout.php'), headers: headers, body: jsonEncode({'fcm_token': fcmToken ?? ''}));
+    await _post(Uri.parse('$baseUrl/logout.php'), headers: headers, body: jsonEncode({'fcm_token': fcmToken ?? ''}));
     await _storage.delete(key: 'auth_token');
   }
 
   Future<bool> isLoggedIn() async => (await _token) != null;
 
   Future<Map<String, dynamic>> me() async {
-    final res = await http.get(Uri.parse('$baseUrl/me.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _fetchStore('me', Uri.parse('$baseUrl/me.php'));
   }
 
   /// Used only by the app-lock screen to check a typed PIN, without
   /// placing any order. Same PIN as the website's transaction PIN.
   Future<Map<String, dynamic>> verifyPin(String transactionPin) async {
-    final res = await http.post(
+    final res = await _post(
       Uri.parse('$baseUrl/verify-pin.php'),
       headers: await _authHeaders(),
       body: jsonEncode({'transaction_pin': transactionPin}),
@@ -111,11 +113,19 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> receipt(String reference) async {
+    final key = 'receipt:$reference';
+    final hit = ApiCache.peek(key);
+    if (hit is Map) return Map<String, dynamic>.from(hit);
     final res = await http.get(
       Uri.parse('$baseUrl/receipt.php?ref=${Uri.encodeQueryComponent(reference)}'),
       headers: await _authHeaders(),
     );
-    return jsonDecode(res.body);
+    final j = jsonDecode(res.body);
+    // Only a finished receipt can be kept; a pending one may still change.
+    if (j is Map && j['success'] == true && ['successful', 'failed', 'refunded', 'approved', 'rejected'].contains('${j['status']}')) {
+      ApiCache.put(key, j);
+    }
+    return j;
   }
 
   Future<Map<String, dynamic>> walletSummary({
@@ -127,6 +137,8 @@ class ApiService {
       if (from.isNotEmpty) 'from': from,
       if (to.isNotEmpty) 'to': to,
     });
+    final isDefault = page == 1 && category == 'all' && q.isEmpty && status == 'all' && direction.isEmpty && from.isEmpty && to.isEmpty;
+    if (isDefault) return _fetchStore('history:default', uri);
     final res = await http.get(uri, headers: await _authHeaders());
     return jsonDecode(res.body);
   }
@@ -146,13 +158,11 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> dataPlans() async {
-    final res = await http.get(Uri.parse('$baseUrl/data-plans.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('dataplans', Uri.parse('$baseUrl/data-plans.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
   }
 
   Future<Map<String, dynamic>> networks() async {
-    final res = await http.get(Uri.parse('$baseUrl/networks.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('networks', Uri.parse('$baseUrl/networks.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
   }
 
   Future<Map<String, dynamic>> buyData({
@@ -168,7 +178,7 @@ class ApiService {
     required String transactionPin,
     bool confirmedMismatch = false,
   }) async {
-    final res = await http.post(
+    final res = await _post(
       Uri.parse('$baseUrl/buy-data.php'),
       headers: await _authHeaders(),
       body: jsonEncode({
@@ -196,7 +206,7 @@ class ApiService {
     required String transactionPin,
     bool confirmedMismatch = false,
   }) async {
-    final res = await http.post(
+    final res = await _post(
       Uri.parse('$baseUrl/buy-airtime.php'),
       headers: await _authHeaders(),
       body: jsonEncode({
@@ -213,12 +223,11 @@ class ApiService {
   // ---- Cable TV (two-step: verify, then pay) ----
 
   Future<Map<String, dynamic>> cablePlans() async {
-    final res = await http.get(Uri.parse('$baseUrl/cable-plans.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('cableplans', Uri.parse('$baseUrl/cable-plans.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
   }
 
   Future<Map<String, dynamic>> verifyCable({required int planId, required String smartcard}) async {
-    final res = await http.post(
+    final res = await _post(
       Uri.parse('$baseUrl/verify-cable.php'),
       headers: await _authHeaders(),
       body: jsonEncode({'plan_id': planId, 'smartcard': smartcard}),
@@ -239,7 +248,7 @@ class ApiService {
     required String phone,
     required String transactionPin,
   }) async {
-    final res = await http.post(
+    final res = await _post(
       Uri.parse('$baseUrl/buy-cable.php'),
       headers: await _authHeaders(),
       body: jsonEncode({
@@ -255,8 +264,7 @@ class ApiService {
   // ---- Electricity (two-step: verify, then pay) ----
 
   Future<Map<String, dynamic>> electricityDiscos() async {
-    final res = await http.get(Uri.parse('$baseUrl/electricity-discos.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('discos', Uri.parse('$baseUrl/electricity-discos.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
   }
 
   Future<Map<String, dynamic>> verifyElectricity({
@@ -264,7 +272,7 @@ class ApiService {
     required String meterType,
     required String meterNumber,
   }) async {
-    final res = await http.post(
+    final res = await _post(
       Uri.parse('$baseUrl/verify-electricity.php'),
       headers: await _authHeaders(),
       body: jsonEncode({'disco': disco, 'meter_type': meterType, 'meter_number': meterNumber}),
@@ -289,7 +297,7 @@ class ApiService {
     required double amount,
     required String transactionPin,
   }) async {
-    final res = await http.post(
+    final res = await _post(
       Uri.parse('$baseUrl/buy-electricity.php'),
       headers: await _authHeaders(),
       body: jsonEncode({
@@ -306,21 +314,20 @@ class ApiService {
 
   // ---- Exam Pins ----
   Future<Map<String, dynamic>> examPlans() async {
-    final res = await http.get(Uri.parse('$baseUrl/exam-plans.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('examplans', Uri.parse('$baseUrl/exam-plans.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
   }
 
   Future<Map<String, dynamic>> buyExamPin({required String exam, required int quantity, required String phone, required String transactionPin}) => _guard(() => _rawBuyExamPin(exam: exam, quantity: quantity, phone: phone, transactionPin: transactionPin));
 
   Future<Map<String, dynamic>> _rawBuyExamPin({required String exam, required int quantity, required String phone, required String transactionPin}) async {
-    final res = await http.post(Uri.parse('$baseUrl/buy-exam-pin.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/buy-exam-pin.php'), headers: await _authHeaders(),
         body: jsonEncode({'exam': exam, 'quantity': quantity, 'phone': phone, 'transaction_pin': transactionPin}));
     return jsonDecode(res.body);
   }
 
   // ---- Transfer To KATSINASUB User ----
   Future<Map<String, dynamic>> transfer({required String identifier, required double amount, required String transactionPin}) async {
-    final res = await http.post(Uri.parse('$baseUrl/transfer.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/transfer.php'), headers: await _authHeaders(),
         body: jsonEncode({'identifier': identifier, 'amount': amount, 'transaction_pin': transactionPin}));
     return jsonDecode(res.body);
   }
@@ -341,79 +348,76 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> requestTransferLimit({required double requestedLimit, String reason = ''}) async {
-    final res = await http.post(Uri.parse('$baseUrl/transfer-limit-request.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/transfer-limit-request.php'), headers: await _authHeaders(),
         body: jsonEncode({'requested_limit': requestedLimit, 'reason': reason}));
     return jsonDecode(res.body);
   }
 
   // ---- Bulk SMS ----
   Future<Map<String, dynamic>> bulkSmsInfo() async {
-    final res = await http.get(Uri.parse('$baseUrl/buy-bulk-sms.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('bulksms', Uri.parse('$baseUrl/buy-bulk-sms.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
   }
 
   Future<Map<String, dynamic>> buyBulkSms({String? senderId, required String message, required String recipients, required String transactionPin}) => _guard(() => _rawBuyBulkSms(senderId: senderId, message: message, recipients: recipients, transactionPin: transactionPin));
 
   Future<Map<String, dynamic>> _rawBuyBulkSms({String? senderId, required String message, required String recipients, required String transactionPin}) async {
-    final res = await http.post(Uri.parse('$baseUrl/buy-bulk-sms.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/buy-bulk-sms.php'), headers: await _authHeaders(),
         body: jsonEncode({'sender_id': senderId ?? '', 'message': message, 'recipients': recipients, 'transaction_pin': transactionPin}));
     return jsonDecode(res.body);
   }
 
   // ---- NIN / BVN Verification ----
   Future<Map<String, dynamic>> verifyNin({required String method, required String slipType, required String nin, required String transactionPin}) async {
-    final res = await http.post(Uri.parse('$baseUrl/verify-nin.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/verify-nin.php'), headers: await _authHeaders(),
         body: jsonEncode({'method': method, 'slip_type': slipType, 'nin': nin, 'transaction_pin': transactionPin}));
     return jsonDecode(res.body);
   }
 
   Future<Map<String, dynamic>> verifyBvn({required String bvn, required String transactionPin}) async {
-    final res = await http.post(Uri.parse('$baseUrl/verify-bvn.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/verify-bvn.php'), headers: await _authHeaders(),
         body: jsonEncode({'bvn': bvn, 'transaction_pin': transactionPin}));
     return jsonDecode(res.body);
   }
 
   // ---- Recharge / Data Card Printing ----
   Future<Map<String, dynamic>> cardPlans({required String cardType}) async {
-    final res = await http.get(Uri.parse('$baseUrl/card-plans.php?type=$cardType'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('cardplans:$cardType', Uri.parse('$baseUrl/card-plans.php?type=$cardType'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
   }
 
   Future<Map<String, dynamic>> buyCard({required String cardType, required int planId, required int quantity, required String transactionPin}) => _guard(() => _rawBuyCard(cardType: cardType, planId: planId, quantity: quantity, transactionPin: transactionPin));
 
   Future<Map<String, dynamic>> _rawBuyCard({required String cardType, required int planId, required int quantity, required String transactionPin}) async {
-    final res = await http.post(Uri.parse('$baseUrl/buy-card.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/buy-card.php'), headers: await _authHeaders(),
         body: jsonEncode({'card_type': cardType, 'plan_id': planId, 'quantity': quantity, 'transaction_pin': transactionPin}));
     return jsonDecode(res.body);
   }
 
   // ---- Airtime to Cash ----
   Future<Map<String, dynamic>> airtimeToCash() async {
-    final res = await http.get(Uri.parse('$baseUrl/airtime-to-cash.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('a2c', Uri.parse('$baseUrl/airtime-to-cash.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
   }
 
   Future<Map<String, dynamic>> submitAirtimeToCash({required String network, required double amountSent, required String senderPhone}) async {
-    final res = await http.post(Uri.parse('$baseUrl/airtime-to-cash.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/airtime-to-cash.php'), headers: await _authHeaders(),
         body: jsonEncode({'network': network, 'amount_sent': amountSent, 'sender_phone': senderPhone}));
     return jsonDecode(res.body);
   }
 
   // ---- Bonus Transfer ----
   Future<Map<String, dynamic>> bonusTransfer({required double amount}) async {
-    final res = await http.post(Uri.parse('$baseUrl/bonus-transfer.php'), headers: await _authHeaders(), body: jsonEncode({'amount': amount}));
+    final res = await _post(Uri.parse('$baseUrl/bonus-transfer.php'), headers: await _authHeaders(), body: jsonEncode({'amount': amount}));
     return jsonDecode(res.body);
   }
 
   // ---- Account Settings ----
   Future<Map<String, dynamic>> changePassword({required String currentPassword, required String newPassword, required String confirmPassword}) async {
-    final res = await http.post(Uri.parse('$baseUrl/account-settings.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/account-settings.php'), headers: await _authHeaders(),
         body: jsonEncode({'form': 'password', 'current_password': currentPassword, 'new_password': newPassword, 'confirm_password': confirmPassword}));
     return jsonDecode(res.body);
   }
 
   Future<Map<String, dynamic>> changePin({required String newPin, required String confirmPin}) async {
-    final res = await http.post(Uri.parse('$baseUrl/account-settings.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/account-settings.php'), headers: await _authHeaders(),
         body: jsonEncode({'form': 'pin', 'new_pin': newPin, 'confirm_pin': confirmPin}));
     return jsonDecode(res.body);
   }
@@ -425,32 +429,29 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> requestAccountDeletion({required String reason}) async {
-    final res = await http.post(Uri.parse('$baseUrl/delete-account.php'), headers: await _authHeaders(), body: jsonEncode({'reason': reason}));
+    final res = await _post(Uri.parse('$baseUrl/delete-account.php'), headers: await _authHeaders(), body: jsonEncode({'reason': reason}));
     return jsonDecode(res.body);
   }
 
   // ---- Referral ----
   Future<Map<String, dynamic>> referral() async {
-    final res = await http.get(Uri.parse('$baseUrl/referral.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('referral', Uri.parse('$baseUrl/referral.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 1));
   }
 
   // ---- Notifications ----
   Future<Map<String, dynamic>> notifications() async {
-    final res = await http.get(Uri.parse('$baseUrl/notifications.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _fetchStore('notifications', Uri.parse('$baseUrl/notifications.php'));
   }
 
   // ---- Fund Wallet ----
   Future<Map<String, dynamic>> fundWalletInfo() async {
-    final res = await http.get(Uri.parse('$baseUrl/fund-wallet.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('fundinfo', Uri.parse('$baseUrl/fund-wallet.php'), ttl: const Duration(minutes: 5), soft: const Duration(minutes: 1));
   }
 
   // kycType ('bvn' | 'nin') and kycNumber are only sent after the server
   // has answered kyc_required — i.e. the provider asked for the customer's ID.
   Future<Map<String, dynamic>> createVirtualAccount({String? kycType, String? kycNumber}) async {
-    final res = await http.post(Uri.parse('$baseUrl/fund-wallet.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/fund-wallet.php'), headers: await _authHeaders(),
         body: jsonEncode({
           'action': 'create_virtual_account',
           if (kycNumber != null) 'kyc_type': kycType,
@@ -460,7 +461,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> createVirtualAccountBillstack({String? kycType, String? kycNumber}) async {
-    final res = await http.post(Uri.parse('$baseUrl/fund-wallet.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/fund-wallet.php'), headers: await _authHeaders(),
         body: jsonEncode({
           'action': 'create_virtual_account_billstack',
           if (kycNumber != null) 'kyc_type': kycType,
@@ -470,7 +471,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> fundWalletInit({required String method, required double amount}) async {
-    final res = await http.post(Uri.parse('$baseUrl/fund-wallet-init.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/fund-wallet-init.php'), headers: await _authHeaders(),
         body: jsonEncode({'method': method, 'amount': amount}));
     return jsonDecode(res.body);
   }
@@ -482,13 +483,13 @@ class ApiService {
 
   // ---- Forgot / Reset Password (no auth token yet) ----
   Future<Map<String, dynamic>> forgotPassword({required String email}) async {
-    final res = await http.post(Uri.parse('$baseUrl/forgot-password.php'),
+    final res = await _post(Uri.parse('$baseUrl/forgot-password.php'),
         headers: {'Content-Type': 'application/json'}, body: jsonEncode({'email': email}));
     return jsonDecode(res.body);
   }
 
   Future<Map<String, dynamic>> resetPassword({required String email, required String code, required String password, required String confirmPassword}) async {
-    final res = await http.post(Uri.parse('$baseUrl/reset-password.php'),
+    final res = await _post(Uri.parse('$baseUrl/reset-password.php'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'code': code, 'password': password, 'confirm_password': confirmPassword}));
     return jsonDecode(res.body);
@@ -502,7 +503,7 @@ class ApiService {
 
   Future<Map<String, dynamic>> sendChatMessage(String message, {File? attachment}) async {
     if (attachment == null) {
-      final res = await http.post(Uri.parse('$baseUrl/chat.php'), headers: await _authHeaders(), body: jsonEncode({'message': message}));
+      final res = await _post(Uri.parse('$baseUrl/chat.php'), headers: await _authHeaders(), body: jsonEncode({'message': message}));
       return jsonDecode(res.body);
     }
     // A photo/screenshot/PDF was picked — send as multipart/form-data,
@@ -524,36 +525,35 @@ class ApiService {
 
   // ---- Email / Phone Verification ----
   Future<Map<String, dynamic>> sendEmailVerification() async {
-    final res = await http.post(Uri.parse('$baseUrl/verify-email.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'send'}));
+    final res = await _post(Uri.parse('$baseUrl/verify-email.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'send'}));
     return jsonDecode(res.body);
   }
 
   Future<Map<String, dynamic>> confirmEmailVerification(String code) async {
-    final res = await http.post(Uri.parse('$baseUrl/verify-email.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'verify', 'code': code}));
+    final res = await _post(Uri.parse('$baseUrl/verify-email.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'verify', 'code': code}));
     return jsonDecode(res.body);
   }
 
   Future<Map<String, dynamic>> sendPhoneVerification() async {
-    final res = await http.post(Uri.parse('$baseUrl/verify-phone.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'send'}));
+    final res = await _post(Uri.parse('$baseUrl/verify-phone.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'send'}));
     return jsonDecode(res.body);
   }
 
   Future<Map<String, dynamic>> confirmPhoneVerification(String code) async {
-    final res = await http.post(Uri.parse('$baseUrl/verify-phone.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'verify', 'code': code}));
+    final res = await _post(Uri.parse('$baseUrl/verify-phone.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'verify', 'code': code}));
     return jsonDecode(res.body);
   }
 
   // ---- Push Notifications ----
   Future<Map<String, dynamic>> registerDevice({required String fcmToken, required String platform}) async {
-    final res = await http.post(Uri.parse('$baseUrl/register-device.php'), headers: await _authHeaders(),
+    final res = await _post(Uri.parse('$baseUrl/register-device.php'), headers: await _authHeaders(),
         body: jsonEncode({'fcm_token': fcmToken, 'platform': platform}));
     return jsonDecode(res.body);
   }
 
   // ---- Support ----
   Future<Map<String, dynamic>> supportInfo() async {
-    final res = await http.get(Uri.parse('$baseUrl/support-info.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('support', Uri.parse('$baseUrl/support-info.php'), ttl: const Duration(minutes: 60), soft: const Duration(minutes: 10));
   }
 
   // ---------------------------------------------------------------------
@@ -597,25 +597,23 @@ class ApiService {
 
   // ---- Rewards & programmes ----
   Future<Map<String, dynamic>> rewards() async {
-    final res = await http.get(Uri.parse('$baseUrl/rewards.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('rewards', Uri.parse('$baseUrl/rewards.php'), ttl: const Duration(minutes: 5), soft: const Duration(minutes: 1));
   }
 
   Future<Map<String, dynamic>> claimReward(int id) async {
-    final res = await http.post(Uri.parse('$baseUrl/rewards.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'claim', 'reward_id': id}));
+    final res = await _post(Uri.parse('$baseUrl/rewards.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'claim', 'reward_id': id}));
     return jsonDecode(res.body);
   }
 
   Future<Map<String, dynamic>> redeemReward({required int id, required String phone, String network = '', required String pin, bool confirmMismatch = false}) async {
-    final res = await http.post(Uri.parse('$baseUrl/rewards.php'),
+    final res = await _post(Uri.parse('$baseUrl/rewards.php'),
         headers: await _authHeaders(),
         body: jsonEncode({'action': 'redeem', 'reward_id': id, 'phone': phone, 'network': network, 'pin': pin, 'confirm_mismatch': confirmMismatch}));
     return jsonDecode(res.body);
   }
 
   Future<Map<String, dynamic>> programs() async {
-    final res = await http.get(Uri.parse('$baseUrl/programs.php'), headers: await _authHeaders());
-    return jsonDecode(res.body);
+    return _getCached('programs', Uri.parse('$baseUrl/programs.php'), ttl: const Duration(minutes: 5), soft: const Duration(minutes: 1));
   }
 
   Future<Map<String, dynamic>> programDetail(int id) async {
@@ -624,7 +622,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> joinProgram(int id) async {
-    final res = await http.post(Uri.parse('$baseUrl/programs.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'join', 'program_id': id}));
+    final res = await _post(Uri.parse('$baseUrl/programs.php'), headers: await _authHeaders(), body: jsonEncode({'action': 'join', 'program_id': id}));
     return jsonDecode(res.body);
   }
 
@@ -635,27 +633,71 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> emailChange(String action, {String? code, String? email}) async {
-    final res = await http.post(Uri.parse('$baseUrl/email-change.php'),
+    final res = await _post(Uri.parse('$baseUrl/email-change.php'),
         headers: await _authHeaders(), body: jsonEncode({'action': action, if (code != null) 'code': code, if (email != null) 'email': email}));
     return jsonDecode(res.body);
   }
 
   // ---- Saved beneficiaries ----
   Future<List<dynamic>> beneficiaries(String type) async {
-    final res = await http.get(Uri.parse('$baseUrl/beneficiaries.php?type=$type'), headers: await _authHeaders());
-    final j = jsonDecode(res.body);
-    return (j is Map && j['success'] == true) ? (j['beneficiaries'] as List<dynamic>? ?? []) : [];
+    final j = await _getCached('ben:$type', Uri.parse('$baseUrl/beneficiaries.php?type=$type'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 1));
+    return (j['success'] == true) ? (j['beneficiaries'] as List<dynamic>? ?? []) : [];
   }
 
   Future<Map<String, dynamic>> addBeneficiary({required String type, required String value, String name = ''}) async {
-    final res = await http.post(Uri.parse('$baseUrl/beneficiaries.php'),
+    final res = await _post(Uri.parse('$baseUrl/beneficiaries.php'),
         headers: await _authHeaders(), body: jsonEncode({'action': 'add', 'type': type, 'value': value, 'name': name}));
     return jsonDecode(res.body);
   }
 
   Future<Map<String, dynamic>> deleteBeneficiary(int id) async {
-    final res = await http.post(Uri.parse('$baseUrl/beneficiaries.php'),
+    final res = await _post(Uri.parse('$baseUrl/beneficiaries.php'),
         headers: await _authHeaders(), body: jsonEncode({'action': 'delete', 'id': id}));
     return jsonDecode(res.body);
+  }
+
+  // ---------------------------------------------------------------------
+  // Speed: answers that need no provider are kept, shown at once, and refreshed quietly.
+  // ---------------------------------------------------------------------
+  Future<http.Response> _post(Uri uri, {Map<String, String>? headers, Object? body, Encoding? encoding}) async {
+    final r = await http.post(uri, headers: headers, body: body, encoding: encoding);
+    // Anything that may have changed because of this request is dropped from the cache.
+    ApiCache.invalidate(['me', 'history', 'notifications', 'rewards', 'programs', 'fundinfo', 'ben:', 'referral']);
+    return r;
+  }
+
+  Future<Map<String, dynamic>> _fetchStore(String key, Uri uri) async {
+    final res = await http.get(uri, headers: await _authHeaders());
+    final j = jsonDecode(res.body);
+    if (j is Map && j['success'] == true) ApiCache.put(key, j);
+    return Map<String, dynamic>.from(j as Map);
+  }
+
+  Future<Map<String, dynamic>> _getCached(String key, Uri uri, {Duration ttl = const Duration(minutes: 10), Duration soft = const Duration(minutes: 2)}) async {
+    final age = ApiCache.age(key);
+    final hit = ApiCache.peek(key);
+    if (hit is Map && age != null && age < ttl) {
+      if (age > soft) {
+        // Fresh enough to show now; update it in the background for next time.
+        _fetchStore(key, uri).then((_) {}, onError: (_) {});
+      }
+      return Map<String, dynamic>.from(hit);
+    }
+    return _fetchStore(key, uri);
+  }
+
+  Map<String, dynamic>? peekMe() { final c = ApiCache.peek('me'); return c is Map ? Map<String, dynamic>.from(c) : null; }
+  Map<String, dynamic>? peekNotifications() { final c = ApiCache.peek('notifications'); return c is Map ? Map<String, dynamic>.from(c) : null; }
+  Map<String, dynamic>? peekHistory() { final c = ApiCache.peek('history:default'); return c is Map ? Map<String, dynamic>.from(c) : null; }
+
+  /// Called when the app opens (and after login): fetches the pages a customer is likely to open
+  /// next, all at the same time, so each of them opens instantly.
+  Future<void> warmUp() async {
+    final jobs = <Future<dynamic>>[
+      me(), walletSummary(), notifications(), rewards(), programs(), referral(), supportInfo(), fundWalletInfo(),
+      networks(), dataPlans(), cablePlans(), electricityDiscos(), examPlans(), bulkSmsInfo(),
+      cardPlans(cardType: 'recharge'), cardPlans(cardType: 'data'), airtimeToCash(), beneficiaries('phone'), beneficiaries('transfer'),
+    ];
+    await Future.wait(jobs.map((f) => f.then<void>((_) {}, onError: (_) {})));
   }
 }
