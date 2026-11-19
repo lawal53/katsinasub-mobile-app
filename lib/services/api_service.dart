@@ -158,11 +158,11 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> dataPlans() async {
-    return _getCached('dataplans', Uri.parse('$baseUrl/data-plans.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
+    return _getCached('dataplans', Uri.parse('$baseUrl/data-plans.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> networks() async {
-    return _getCached('networks', Uri.parse('$baseUrl/networks.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
+    return _getCached('networks', Uri.parse('$baseUrl/networks.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> buyData({
@@ -223,7 +223,7 @@ class ApiService {
   // ---- Cable TV (two-step: verify, then pay) ----
 
   Future<Map<String, dynamic>> cablePlans() async {
-    return _getCached('cableplans', Uri.parse('$baseUrl/cable-plans.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
+    return _getCached('cableplans', Uri.parse('$baseUrl/cable-plans.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> verifyCable({required int planId, required String smartcard}) async {
@@ -264,7 +264,7 @@ class ApiService {
   // ---- Electricity (two-step: verify, then pay) ----
 
   Future<Map<String, dynamic>> electricityDiscos() async {
-    return _getCached('discos', Uri.parse('$baseUrl/electricity-discos.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
+    return _getCached('discos', Uri.parse('$baseUrl/electricity-discos.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> verifyElectricity({
@@ -314,7 +314,7 @@ class ApiService {
 
   // ---- Exam Pins ----
   Future<Map<String, dynamic>> examPlans() async {
-    return _getCached('examplans', Uri.parse('$baseUrl/exam-plans.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
+    return _getCached('examplans', Uri.parse('$baseUrl/exam-plans.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> buyExamPin({required String exam, required int quantity, required String phone, required String transactionPin}) => _guard(() => _rawBuyExamPin(exam: exam, quantity: quantity, phone: phone, transactionPin: transactionPin));
@@ -355,7 +355,7 @@ class ApiService {
 
   // ---- Bulk SMS ----
   Future<Map<String, dynamic>> bulkSmsInfo() async {
-    return _getCached('bulksms', Uri.parse('$baseUrl/buy-bulk-sms.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
+    return _getCached('bulksms', Uri.parse('$baseUrl/buy-bulk-sms.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> buyBulkSms({String? senderId, required String message, required String recipients, required String transactionPin}) => _guard(() => _rawBuyBulkSms(senderId: senderId, message: message, recipients: recipients, transactionPin: transactionPin));
@@ -381,7 +381,7 @@ class ApiService {
 
   // ---- Recharge / Data Card Printing ----
   Future<Map<String, dynamic>> cardPlans({required String cardType}) async {
-    return _getCached('cardplans:$cardType', Uri.parse('$baseUrl/card-plans.php?type=$cardType'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
+    return _getCached('cardplans:$cardType', Uri.parse('$baseUrl/card-plans.php?type=$cardType'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> buyCard({required String cardType, required int planId, required int quantity, required String transactionPin}) => _guard(() => _rawBuyCard(cardType: cardType, planId: planId, quantity: quantity, transactionPin: transactionPin));
@@ -394,7 +394,7 @@ class ApiService {
 
   // ---- Airtime to Cash ----
   Future<Map<String, dynamic>> airtimeToCash() async {
-    return _getCached('a2c', Uri.parse('$baseUrl/airtime-to-cash.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 2));
+    return _getCached('a2c', Uri.parse('$baseUrl/airtime-to-cash.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> submitAirtimeToCash({required String network, required double amountSent, required String senderPhone}) async {
@@ -435,7 +435,7 @@ class ApiService {
 
   // ---- Referral ----
   Future<Map<String, dynamic>> referral() async {
-    return _getCached('referral', Uri.parse('$baseUrl/referral.php'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 1));
+    return _getCached('referral', Uri.parse('$baseUrl/referral.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   // ---- Notifications ----
@@ -445,7 +445,7 @@ class ApiService {
 
   // ---- Fund Wallet ----
   Future<Map<String, dynamic>> fundWalletInfo() async {
-    return _getCached('fundinfo', Uri.parse('$baseUrl/fund-wallet.php'), ttl: const Duration(minutes: 5), soft: const Duration(minutes: 1));
+    return _getCached('fundinfo', Uri.parse('$baseUrl/fund-wallet.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   // kycType ('bvn' | 'nin') and kycNumber are only sent after the server
@@ -553,7 +553,7 @@ class ApiService {
 
   // ---- Support ----
   Future<Map<String, dynamic>> supportInfo() async {
-    return _getCached('support', Uri.parse('$baseUrl/support-info.php'), ttl: const Duration(minutes: 60), soft: const Duration(minutes: 10));
+    return _getCached('support', Uri.parse('$baseUrl/support-info.php'), ttl: const Duration(seconds: 30), soft: const Duration(seconds: 15));
   }
 
   // ---------------------------------------------------------------------
@@ -597,7 +597,7 @@ class ApiService {
 
   // ---- Rewards & programmes ----
   Future<Map<String, dynamic>> rewards() async {
-    return _getCached('rewards', Uri.parse('$baseUrl/rewards.php'), ttl: const Duration(minutes: 5), soft: const Duration(minutes: 1));
+    return _getCached('rewards', Uri.parse('$baseUrl/rewards.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> claimReward(int id) async {
@@ -613,7 +613,7 @@ class ApiService {
   }
 
   Future<Map<String, dynamic>> programs() async {
-    return _getCached('programs', Uri.parse('$baseUrl/programs.php'), ttl: const Duration(minutes: 5), soft: const Duration(minutes: 1));
+    return _getCached('programs', Uri.parse('$baseUrl/programs.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   Future<Map<String, dynamic>> programDetail(int id) async {
@@ -640,7 +640,7 @@ class ApiService {
 
   // ---- Saved beneficiaries ----
   Future<List<dynamic>> beneficiaries(String type) async {
-    final j = await _getCached('ben:$type', Uri.parse('$baseUrl/beneficiaries.php?type=$type'), ttl: const Duration(minutes: 10), soft: const Duration(minutes: 1));
+    final j = await _getCached('ben:$type', Uri.parse('$baseUrl/beneficiaries.php?type=$type'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
     return (j['success'] == true) ? (j['beneficiaries'] as List<dynamic>? ?? []) : [];
   }
 
@@ -673,7 +673,7 @@ class ApiService {
     return Map<String, dynamic>.from(j as Map);
   }
 
-  Future<Map<String, dynamic>> _getCached(String key, Uri uri, {Duration ttl = const Duration(minutes: 10), Duration soft = const Duration(minutes: 2)}) async {
+  Future<Map<String, dynamic>> _getCached(String key, Uri uri, {Duration ttl = const Duration(seconds: 25), Duration soft = const Duration(seconds: 15)}) async {
     final age = ApiCache.age(key);
     final hit = ApiCache.peek(key);
     if (hit is Map && age != null && age < ttl) {
