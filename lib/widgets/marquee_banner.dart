@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
-/// A red notice bar whose text glides slowly from right to left and, when it
-/// reaches the end, starts again from the beginning. It has no close button:
-/// it stays until the admin deletes the notice.
+enum BannerKind { notice, goodNews }
+
+/// Scrolling banner for either a red Notice or a theme-colored Good News bar.
 class MarqueeBanner extends StatefulWidget {
   final String text;
-  const MarqueeBanner({super.key, required this.text});
+  final BannerKind kind;
+  const MarqueeBanner({super.key, required this.text, this.kind = BannerKind.notice});
   @override
   State<MarqueeBanner> createState() => _MarqueeBannerState();
 }
@@ -22,21 +23,31 @@ class _MarqueeBannerState extends State<MarqueeBanner> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
+    final isGoodNews = widget.kind == BannerKind.goodNews;
+    final cs = Theme.of(context).colorScheme;
+    final bgColor = isGoodNews ? const Color(0xFF0B7D55) : const Color(0xFFD32F2F);
+    final borderColor = isGoodNews ? cs.primary.withOpacity(0.35) : Colors.transparent;
+    final icon = isGoodNews ? Icons.celebration_outlined : Icons.campaign_outlined;
     const style = TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600);
+
     return Container(
       height: 40,
-      decoration: BoxDecoration(color: const Color(0xFFD32F2F), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: isGoodNews ? Border.all(color: borderColor) : null,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         children: [
-          const Icon(Icons.campaign_outlined, color: Colors.white, size: 20),
+          Icon(icon, color: Colors.white, size: 20),
           const SizedBox(width: 8),
           Expanded(
             child: LayoutBuilder(builder: (context, box) {
               final tp = TextPainter(text: TextSpan(text: widget.text, style: style), maxLines: 1, textDirection: TextDirection.ltr)..layout();
               final boxW = box.maxWidth;
               final total = boxW + tp.width;
-              final ms = (total / 40 * 1000).round(); // slow: about 40 pixels a second
+              final ms = (total / 40 * 1000).round();
               if (ms != _ms) {
                 _ms = ms;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
