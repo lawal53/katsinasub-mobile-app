@@ -8,6 +8,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'services/api_service.dart';
+import 'widgets/one_time_promo_dialog.dart';
 import 'services/notification_service.dart';
 import 'services/lock_service.dart';
 import 'theme.dart';
@@ -381,6 +382,17 @@ class _StartupGateState extends State<_StartupGate> {
             final me = await _api.me();
             if (me['success'] == true) {
               LockService.instance.locked.value = me['user']?['has_transaction_pin'] == true;
+              final popup = me['promo_popup'];
+              if (popup is Map && mounted) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted && rootNavigatorKey.currentContext != null) {
+                    OneTimePromoManager.maybeShow(
+                      rootNavigatorKey.currentContext!,
+                      Map<String, dynamic>.from(popup),
+                    );
+                  }
+                });
+              }
             }
           } catch (_) {}
         }());
