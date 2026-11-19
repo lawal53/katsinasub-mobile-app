@@ -97,8 +97,9 @@ class ApiService {
 
   Future<bool> isLoggedIn() async => (await _token) != null;
 
-  Future<Map<String, dynamic>> me() async {
-    return _fetchStore('me', Uri.parse('$baseUrl/me.php'));
+  Future<Map<String, dynamic>> me({bool forceRefresh = false}) async {
+    if (forceRefresh) return _fetchStore('me', Uri.parse('$baseUrl/me.php'));
+    return _getCached('me', Uri.parse('$baseUrl/me.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
   /// Used only by the app-lock screen to check a typed PIN, without
