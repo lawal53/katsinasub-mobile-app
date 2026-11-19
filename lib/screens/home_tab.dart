@@ -42,6 +42,7 @@ class _HomeTabState extends State<HomeTab> {
   final _api = ApiService();
   Map<String, dynamic>? _user;
   String _notice = '';
+  String _goodNews = '';
   Map<String, dynamic> _dataUsage = {};
   bool _loading = true;
   bool _balanceHidden = false;
@@ -55,7 +56,8 @@ class _HomeTabState extends State<HomeTab> {
     final c = _api.peekMe();
     if (c != null && c['success'] == true) {
       _user = c['user'];
-      _notice = '${c['home_notice'] ?? ''}'.trim();
+      _notice = '${c['home_notice'] ?? c['home_notice_text'] ?? ''}'.trim();
+      _goodNews = '${c['home_good_news'] ?? ''}'.trim();
       _dataUsage = c['data_usage'] is Map ? Map<String, dynamic>.from(c['data_usage']) : {};
       _loading = false;
     }
@@ -75,18 +77,38 @@ class _HomeTabState extends State<HomeTab> {
     try { await _secure.write(key: _hideKey, value: _balanceHidden ? '1' : '0'); } catch (_) {}
   }
 
-  Future<void> _load() async {
-    final meRes = await _api.me();
+  Future<void> _load({bool forceRefresh = false}) async {
+    if (forceRefresh) {
+      await _api.warmUp();
+    }
+    final meRes = await _api.me(forceRefresh: forceRefresh);
     if (!mounted) return;
     setState(() {
       _user = meRes['success'] == true ? meRes['user'] : _user;
-      _notice = meRes['success'] == true ? '${meRes['home_notice'] ?? ''}'.trim() : _notice;
+      _notice = meRes['success'] == true ? '${meRes['home_notice'] ?? meRes['home_notice_text'] ?? ''}'.trim() : _notice;
+      _goodNews = meRes['success'] == true ? '${meRes['home_good_news'] ?? ''}'.trim() : _goodNews;
       _dataUsage = meRes['data_usage'] is Map ? Map<String, dynamic>.from(meRes['data_usage']) : {};
       _loading = false;
     });
   }
 
   Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to log out of your account?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
     await _api.logout(fcmToken: NotificationService().currentToken);
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const WelcomeScreen()), (r) => false);
@@ -169,11 +191,12 @@ class _HomeTabState extends State<HomeTab> {
       ),
       drawer: _buildAccountDrawer(),
       body: RefreshIndicator(
-        onRefresh: _load,
+        onRefresh: () => _load(forceRefresh: true),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            if (_notice.isNotEmpty) ...[MarqueeBanner(text: _notice), const SizedBox(height: 12)],
+            if (_notice.isNotEmpty) ...[MarqueeBanner(text: _notice, kind: BannerKind.notice), const SizedBox(height: 10)],
+            if (_goodNews.isNotEmpty) ...[MarqueeBanner(text: _goodNews, kind: BannerKind.goodNews), const SizedBox(height: 12)],
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(

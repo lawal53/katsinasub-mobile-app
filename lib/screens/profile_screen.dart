@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
 import '../theme.dart';
+import '../services/api_cache.dart';
 import '../services/api_service.dart';
 import '../services/notification_service.dart';
 import 'account_settings_screen.dart';
@@ -10,7 +11,6 @@ import 'notifications_screen.dart';
 import 'referral_screen.dart';
 import 'welcome_screen.dart';
 
-/// Profile tab: the account, settings and sign-out in one place.
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
   @override
@@ -24,22 +24,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
+    final c = _api.peekMe();
+    if (c != null && c['success'] == true) _user = c['user'];
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool force = false}) async {
     try {
-      final r = await _api.me();
+      if (force) ApiCache.clear();
+      final r = await _api.me(forceRefresh: force);
       if (mounted && r['success'] == true) setState(() => _user = r['user']);
     } catch (_) {}
   }
 
   Future<void> _open(Widget w) async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => w));
-    _load();
+    _load(force: true);
   }
 
   Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm Logout'),
+        content: const Text('Are you sure you want to log out of your account?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
     await _api.logout(fcmToken: NotificationService().currentToken);
     if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const WelcomeScreen()), (r) => false);
@@ -59,7 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile'), automaticallyImplyLeading: false),
       body: RefreshIndicator(
-        onRefresh: _load,
+        onRefresh: () => _load(force: true),
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [

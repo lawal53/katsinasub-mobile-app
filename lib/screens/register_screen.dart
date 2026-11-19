@@ -54,7 +54,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() { _loading = true; _error = null; });
     String? deviceId;
     try {
-      // One welcome reward per phone: the phone's own Android ID identifies it.
       deviceId = (await DeviceInfoPlugin().androidInfo).id;
     } catch (_) {}
     final res = await _api.register(
@@ -95,6 +94,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
 
+  Widget _passwordWarningCard() {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer.withOpacity(0.45),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.primary.withOpacity(0.28)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.shield_outlined, size: 18, color: cs.primary),
+          const SizedBox(width: 8),
+          const Expanded(
+            child: Text(
+              'At least 8 characters, mixing letters and numbers (e.g. Kasuwa@2026). Simple passwords like 12345678 are not accepted.',
+              style: TextStyle(fontSize: 12, height: 1.35),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,18 +129,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
           padding: const EdgeInsets.all(24),
           children: [
             if (_error != null) ...[
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(color: const Color(0xFFFDECEC), borderRadius: BorderRadius.circular(14)),
+                child: Text(_error!, style: const TextStyle(color: Color(0xFFB3261E), fontWeight: FontWeight.w600)),
+              ),
             ],
             _field(_fullName, 'Full Name'),
             _field(_username, 'Username'),
             Padding(padding: const EdgeInsets.only(bottom: 12), child: PhoneField(controller: _phone, labelText: tr('Phone Number'))),
             _field(_email, 'Email', type: TextInputType.emailAddress),
             _field(_password, 'Password', obscure: _obscurePassword, onToggleObscure: () => setState(() => _obscurePassword = !_obscurePassword)),
-            const Padding(
-              padding: EdgeInsets.only(bottom: 12, left: 4),
-              child: Text('At least 8 characters, mixing letters and numbers, for example Kasuwa@2026. Simple ones like 12345678 are not accepted.', style: TextStyle(fontSize: 12.5)),
-            ),
+            _passwordWarningCard(),
             _field(_confirm, 'Confirm Password', obscure: _obscureConfirm, onToggleObscure: () => setState(() => _obscureConfirm = !_obscureConfirm)),
             _field(_referralCode, 'Referral Code (optional)'),
             Row(

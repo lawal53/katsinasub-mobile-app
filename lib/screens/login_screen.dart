@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart' hide Text;
 import '../services/pin_guard.dart';
 import '../l10n.dart';
@@ -21,15 +22,38 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _error;
   bool _obscure = true;
 
+  Future<void> _showSuccessAndEnter() async {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            Icon(Icons.check_circle, color: Color(0xFF0F9D6B), size: 54),
+            SizedBox(height: 12),
+            Text('Login Successful', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            SizedBox(height: 6),
+            Text('Opening your account...', textAlign: TextAlign.center, style: TextStyle(fontSize: 13)),
+          ],
+        ),
+      ),
+    );
+    await Future.delayed(const Duration(milliseconds: 1100));
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pop();
+    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const DashboardScreen()), (r) => false);
+    PinGuard.reset();
+  }
+
   Future<void> _submit() async {
     setState(() { _loading = true; _error = null; });
     final res = await _api.login(loginId: _loginIdCtrl.text.trim(), password: _passwordCtrl.text);
     setState(() => _loading = false);
     if (res['success'] == true) {
       try { await NotificationService().initAndRegister(); } catch (e) { /* push is optional */ }
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const DashboardScreen()), (r) => false);
-      PinGuard.reset();
+      await _showSuccessAndEnter();
     } else {
       setState(() => _error = res['message'] ?? 'Login failed.');
     }
