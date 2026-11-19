@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' hide Text;
 import 'package:flutter/services.dart';
+import 'services/api_cache.dart';
 import 'package:app_links/app_links.dart';
 import 'l10n.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -119,6 +120,7 @@ const AndroidNotificationChannel notificationChannel = AndroidNotificationChanne
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await ApiCache.init(); // the last answers from the server, so pages open at once
   // Android 15 draws apps edge-to-edge; do it on purpose so every version looks the same.
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
