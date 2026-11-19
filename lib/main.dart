@@ -369,7 +369,8 @@ class _StartupGateState extends State<_StartupGate> {
       if (!mounted) return;
       if (v) {
         final cached = _api.peekMe();
-        final cachedHasPin = cached is Map && cached['user'] is Map ? cached['user']['has_transaction_pin'] : null;
+        final cachedUser = cached?['user'];
+        final cachedHasPin = cachedUser is Map ? cachedUser['has_transaction_pin'] : null;
         if (cachedHasPin != false) {
           LockService.instance.locked.value = true;
         }
