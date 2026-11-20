@@ -44,6 +44,11 @@ class LockService {
   /// True while the lock screen should be shown on top of everything.
   final ValueNotifier<bool> locked = ValueNotifier<bool>(false);
 
+  /// True once the user has unlocked in the current session so stale
+  /// background/startup checks do not re-lock immediately after unlock.
+  bool _sessionUnlocked = false;
+  bool get sessionUnlocked => _sessionUnlocked;
+
   DateTime? _backgroundedAt;
   static const _kBackgroundedAtKey = 'app_backgrounded_at';
 
@@ -74,13 +79,21 @@ class LockService {
     _secureStorage.delete(key: _kBackgroundedAtKey);
 
     if (bg != null && DateTime.now().difference(bg) >= inactivityLimit) {
+      _sessionUnlocked = false;
       locked.value = true;
       return true;
     }
     return false;
   }
 
-  void unlock() => locked.value = false;
+  void unlock() {
+    _sessionUnlocked = true;
+    locked.value = false;
+  }
+
+  void resetSessionUnlock() {
+    _sessionUnlocked = false;
+  }
 
   /// Checks a typed PIN against the website's transaction PIN. Every
   /// successful full-PIN entry resets the fingerprint-unlock expiry
