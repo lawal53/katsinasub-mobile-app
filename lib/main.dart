@@ -372,7 +372,7 @@ class _StartupGateState extends State<_StartupGate> {
         final cached = _api.peekMe();
         final cachedUser = cached?['user'];
         final cachedHasPin = cachedUser is Map ? cachedUser['has_transaction_pin'] : null;
-        if (cachedHasPin != false) {
+        if (cachedHasPin == true && !LockService.instance.sessionUnlocked) {
           LockService.instance.locked.value = true;
         }
         setState(() { _loggedIn = true; _checking = false; });
@@ -380,7 +380,7 @@ class _StartupGateState extends State<_StartupGate> {
           try { await NotificationService().initAndRegister(); } catch (_) {}
           try {
             final me = await _api.me();
-            if (me['success'] == true) {
+            if (me['success'] == true && !LockService.instance.sessionUnlocked) {
               LockService.instance.locked.value = me['user']?['has_transaction_pin'] == true;
               final popup = me['promo_popup'];
               if (popup is Map && mounted) {
