@@ -249,11 +249,24 @@ class VtuApp extends StatefulWidget {
 /// `builder`, so returning from the lock screen goes right back to
 /// wherever the user was.
 class _VtuAppState extends State<VtuApp> with WidgetsBindingObserver {
+  Timer? _autoRefresh;
+  final _bgApi = ApiService();
+
+  // Every 60 seconds, while the app is open, the whole app's data is refreshed in the background.
+  // Screens that show live data redraw by themselves when something changed.
+  void _startAutoRefresh() {
+    _autoRefresh?.cancel();
+    _autoRefresh = Timer.periodic(const Duration(seconds: 60), (_) {
+      unawaited(_bgApi.refreshAll(full: false).catchError((_) {}));
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initDeepLinks();
+    _startAutoRefresh();
   }
 
   Future<void> _initDeepLinks() async {
@@ -267,6 +280,7 @@ class _VtuAppState extends State<VtuApp> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _autoRefresh?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -280,8 +294,15 @@ class _VtuAppState extends State<VtuApp> with WidgetsBindingObserver {
     // the 5-minute timer still starts.
     if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive || state == AppLifecycleState.hidden) {
       LockService.instance.onPause();
+      _autoRefresh?.cancel(); // no background refresh while the app is not on screen
     } else if (state == AppLifecycleState.resumed) {
       LockService.instance.onResume(); // fire-and-forget: it flips `locked` itself once resolved
+      _startAutoRefresh();
+      // Coming back after a while: bring everything up to date straight away.
+      final last = ApiService.lastFullRefresh;
+      if (last == null || DateTime.now().difference(last) > const Duration(seconds: 30)) {
+        unawaited(_bgApi.refreshAll().catchError((_) {}));
+      }
     }
   }
 
