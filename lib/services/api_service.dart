@@ -107,7 +107,14 @@ class ApiService {
   Future<bool> isLoggedIn() async => (await _token) != null;
 
   Future<Map<String, dynamic>> me({bool forceRefresh = false}) async {
-    if (forceRefresh) return _fetchStore('me', Uri.parse('$baseUrl/me.php'));
+    if (forceRefresh) {
+      try {
+        return await _fetchStore('me', Uri.parse('$baseUrl/me.php'));
+      } catch (_) {
+        final c = peekMe(); // offline: keep showing what we have
+        return c ?? {'success': false, 'message': 'No connection.'};
+      }
+    }
     return _getCached('me', Uri.parse('$baseUrl/me.php'), ttl: const Duration(seconds: 25), soft: const Duration(seconds: 15));
   }
 
@@ -585,7 +592,7 @@ class ApiService {
         await Future.delayed(Duration(seconds: i == 0 ? 2 : 4));
         final res = await http
             .get(Uri.parse('$baseUrl/latest-transaction.php?seconds=$seconds'), headers: await _authHeaders())
-            .timeout(const Duration(seconds: 20));
+            .timeout(const Duration(seconds: 12));
         final j = jsonDecode(res.body);
         if (j is Map && j['found'] == true) {
           final st = '${j['status']}';
@@ -669,7 +676,14 @@ class ApiService {
   Future<http.Response> _post(Uri uri, {Map<String, String>? headers, Object? body, Encoding? encoding}) async {
     final r = await http.post(uri, headers: headers, body: body, encoding: encoding);
     // Anything that may have changed because of this request is dropped from the cache.
-    ApiCache.invalidate(['me', 'history', 'notifications', 'rewards', 'programs', 'program_detail', 'fundinfo', 'ben:', 'referral', 'transfer_', 'a2c', 'bulksms']);
+    // Saved copies are kept (so pages still open instantly) and re-fetched quietly; screens redraw
+    // when the new data lands.
+    const affected = ['me', 'history', 'notifications', 'rewards', 'programs', 'program_detail', 'fundinfo', 'ben:', 'referral', 'transfer_', 'a2c', 'bulksms'];
+    for (final e in _uris.entries.toList()) {
+      if (affected.any((p) => e.key.startsWith(p))) {
+        _fetchStore(e.key, e.value, notify: true).then((_) {}, onError: (_) {});
+      }
+    }
     return r;
   }
 
@@ -677,6 +691,7 @@ class ApiService {
   static final Map<String, Uri> _uris = {};
   // The same page asked twice at the same moment is fetched once.
   static final Map<String, Future<Map<String, dynamic>>> _inflight = {};
+  static bool _dirty = false; // set when any fetch brought in different data
 
   Future<Map<String, dynamic>> _fetchStore(String key, Uri uri, {bool notify = false}) {
     _uris[key] = uri;
@@ -689,41 +704,36 @@ class ApiService {
 
   Future<Map<String, dynamic>> _fetchStoreNow(String key, Uri uri, {required bool notify}) async {
     final epochAtStart = ApiCache.epoch;
-    final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 20));
+    final res = await http.get(uri, headers: await _authHeaders()).timeout(const Duration(seconds: 12));
     final j = jsonDecode(res.body);
     // Only keep the answer if nobody logged in or out while it was on its way.
     if (j is Map && j['success'] == true && epochAtStart == ApiCache.epoch) {
       final changed = ApiCache.put(key, j);
+      if (changed) _dirty = true;
       if (changed && notify) ApiCache.notifyChanged();
     }
     return Map<String, dynamic>.from(j as Map);
   }
 
-  // Prices and plans: never shown older than ~25 seconds without asking the server first (the server
-  // also re-checks the price at purchase). Everything else opens instantly from the saved copy and
-  // is refreshed in the background; screens that listen to ApiCache.refreshTick redraw by themselves.
-  static const _priceKeys = ['dataplans', 'networks', 'cableplans', 'discos', 'examplans', 'cardplans', 'bulksms', 'a2c'];
-
+  // WhatsApp-style: if anything is saved for a page it is returned AT ONCE, whatever its age. If it is
+  // older than a few seconds, a quiet refresh runs in the background and screens that listen to
+  // ApiCache.refreshTick redraw when something changed. Only a page that has never been opened
+  // has to wait for the server, and even then it never throws (it returns success:false), so a
+  // screen can never be left spinning forever.
   Future<Map<String, dynamic>> _getCached(String key, Uri uri, {Duration ttl = const Duration(seconds: 25), Duration soft = const Duration(seconds: 15)}) async {
     final hit = ApiCache.peek(key);
     final age = ApiCache.age(key);
     if (hit is Map && age != null) {
-      // Younger than `soft`: nothing can have changed that matters, use it as is.
-      if (age <= soft) return Map<String, dynamic>.from(hit);
-      final isPrice = _priceKeys.any((p) => key.startsWith(p));
-      // Not a price, and saved less than 6 hours ago: show it at once, refresh quietly.
-      if ((!isPrice && age < const Duration(hours: 6)) || age < ttl) {
+      if (age > const Duration(seconds: 5)) {
         _fetchStore(key, uri, notify: true).then((_) {}, onError: (_) {});
-        return Map<String, dynamic>.from(hit);
       }
-      // Prices/plans older than `ttl`: ask the server (at most 8 seconds), else use what we have.
-      try {
-        return await _fetchStore(key, uri).timeout(const Duration(seconds: 8));
-      } catch (_) {
-        return Map<String, dynamic>.from(hit);
-      }
+      return Map<String, dynamic>.from(hit);
     }
-    return _fetchStore(key, uri);
+    try {
+      return await _fetchStore(key, uri);
+    } catch (_) {
+      return {'success': false, 'message': 'No connection. Pull down to try again.'};
+    }
   }
 
   Map<String, dynamic>? peekKey(String key) { final c = ApiCache.peek(key); return c is Map ? Map<String, dynamic>.from(c) : null; }
@@ -741,44 +751,31 @@ class ApiService {
   static Future<void>? _refreshing;
   static DateTime? lastFullRefresh;
 
-  /// Refreshes the whole app's data now: every page that was ever opened plus the main ones.
-  /// Used by the 60-second background refresh and by pull-to-refresh. Screens that listen to
-  /// ApiCache.refreshTick redraw when it finishes.
+  /// Refreshes the app's data now. `full` (pull-to-refresh, coming back to the app) re-asks for every
+  /// page that has been used; the 60-second background refresh (`full: false`) only re-asks for what
+  /// changes fast. Saved data is never thrown away or marked old, so nothing ever waits on this.
   Future<void> refreshAll({bool full = true}) {
     final running = _refreshing;
     if (running != null) return running;
-    final f = (full ? _refreshAllNow() : _refreshHotNow()).whenComplete(() { _refreshing = null; });
+    final f = _refreshNow(full).whenComplete(() { _refreshing = null; });
     _refreshing = f;
     return f;
   }
 
-  // The 60-second background refresh only re-asks for what changes fast (balance, history,
-  // notices, prices, rewards). Every other page refreshes itself when it is opened, so the
-  // server is not hit with dozens of requests per customer per minute.
   static const _hotKeys = ['me', 'history:default', 'notifications', 'rewards', 'dataplans', 'networks'];
 
-  Future<void> _refreshHotNow() async {
+  Future<void> _refreshNow(bool full) async {
     if (!await hasSession()) return;
     final epochAtStart = ApiCache.epoch;
-    final jobs = <String, Uri>{for (final k in _hotKeys) if (_uris[k] != null) k: _uris[k]!};
+    if (full && _uris.isEmpty) await warmUp();
+    final jobs = <String, Uri>{
+      for (final e in _uris.entries) if (full || _hotKeys.contains(e.key)) e.key: e.value,
+    };
     if (jobs.isEmpty) return;
-    ApiCache.expire(jobs.keys);
+    _dirty = false;
     await Future.wait(jobs.entries.map((e) => _fetchStore(e.key, e.value).then<void>((_) {}, onError: (_) {})));
     lastFullRefresh = DateTime.now();
-    if (epochAtStart == ApiCache.epoch) ApiCache.notifyChanged();
-  }
-
-  Future<void> _refreshAllNow() async {
-    if (!await hasSession()) return;
-    final epochAtStart = ApiCache.epoch;
-    ApiCache.expireAll();
-    final extra = _uris.entries.toList();
-    await Future.wait([
-      warmUp(),
-      ...extra.map((e) => _fetchStore(e.key, e.value).then<void>((_) {}, onError: (_) {})),
-    ]);
-    lastFullRefresh = DateTime.now();
-    if (epochAtStart == ApiCache.epoch) ApiCache.notifyChanged();
+    if (_dirty && epochAtStart == ApiCache.epoch) ApiCache.notifyChanged();
   }
 
   Future<void> warmUp() async {
