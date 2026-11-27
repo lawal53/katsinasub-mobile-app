@@ -150,7 +150,9 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        RepaintBoundary(
+        Center(child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 330), // compact, OPay-style receipt width
+          child: RepaintBoundary(
           key: _captureKey,
           child: Container(
             // A plain, solid background is required for the capture.
@@ -164,64 +166,64 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                   children: [
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.fromLTRB(20, 22, 20, 46),
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 37),
                       decoration: const BoxDecoration(gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: [Color(0xFF0A1B36), Color(0xFF0B7D55), Color(0xFF12A06B)])),
                       child: Column(
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18)),
-                            child: Image.asset('assets/logo.png', width: 46, height: 46, fit: BoxFit.contain),
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+                            child: Image.asset('assets/logo.png', width: 32, height: 32, fit: BoxFit.contain),
                           ),
-                          const SizedBox(height: 8),
-                          const Text('KATSINASUB', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Colors.white, letterSpacing: 1)),
-                          const Text('RC 9716377', style: TextStyle(fontSize: 11.5, color: Colors.white70)),
+                          const SizedBox(height: 5),
+                          const Text('KATSINASUB', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Colors.white, letterSpacing: 1)),
+                          const Text('RC 9716377', style: TextStyle(fontSize: 10, color: Colors.white70)),
                         ],
                       ),
                     ),
                     Transform.translate(
-                      offset: const Offset(0, -34),
+                      offset: const Offset(0, -27),
                       child: Column(
                         children: [
                           Container(
-                            width: 68, height: 68,
+                            width: 54, height: 54,
                             decoration: BoxDecoration(color: cs.surface, shape: BoxShape.circle, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 12, offset: const Offset(0, 4))]),
-                            child: Icon(sIcon, size: 44, color: sc),
+                            child: Icon(sIcon, size: 36, color: sc),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 6),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
                             decoration: BoxDecoration(color: sc.withOpacity(0.13), borderRadius: BorderRadius.circular(20)),
-                            child: Text(statusLabel(status).toUpperCase(), style: TextStyle(color: sc, fontWeight: FontWeight.w900, letterSpacing: 0.6, fontSize: 12.5)),
+                            child: Text(statusLabel(status).toUpperCase(), style: TextStyle(color: sc, fontWeight: FontWeight.w900, letterSpacing: 0.5, fontSize: 11)),
                           ),
-                          const SizedBox(height: 10),
-                          Text('${_data!['title']}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          const SizedBox(height: 6),
+                          Text('${_data!['title']}', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700)),
                           if (amount != null) ...[
                             const SizedBox(height: 4),
-                            Text(amount, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900)),
+                            Text(amount, style: const TextStyle(fontSize: 27, fontWeight: FontWeight.w900)),
                           ],
                         ],
                       ),
                     ),
-                    Transform.translate(offset: const Offset(0, -20), child: _dashedDivider(bg)),
+                    Transform.translate(offset: const Offset(0, -22), child: _dashedDivider(bg)),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 4),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 2),
                       child: Column(
                         children: [
                           for (final r in shown)
                             Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              padding: const EdgeInsets.symmetric(vertical: 5),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(flex: 4, child: Text('${r['label']}', style: const TextStyle(color: Colors.black54, fontSize: 13.5))),
+                                  Expanded(flex: 4, child: Text('${r['label']}', style: const TextStyle(color: Colors.black54, fontSize: 12))),
                                   Expanded(
                                     flex: 6,
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.end,
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Flexible(child: SelectableText('${r['value']}', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5))),
+                                        Flexible(child: SelectableText('${r['value']}', textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12))),
                                         if (r['copy'] == true)
                                           InkWell(
                                             onTap: () => _copy('${r['value']}'),
@@ -238,26 +240,26 @@ class _ReceiptScreenState extends State<ReceiptScreen> {
                     ),
                     if (before != null && after != null)
                       Container(
-                        margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-                        padding: const EdgeInsets.all(14),
+                        margin: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(color: const Color(0xFF11A06B).withOpacity(0.10), borderRadius: BorderRadius.circular(18), border: Border.all(color: const Color(0xFF11A06B).withOpacity(0.35))),
                         child: Row(
                           children: [
-                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Balance Before', style: TextStyle(fontSize: 11.5, color: Colors.black54)), const SizedBox(height: 2), FittedBox(fit: BoxFit.scaleDown, child: Text(before, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)))])),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text('Balance Before', style: TextStyle(fontSize: 10.5, color: Colors.black54)), const SizedBox(height: 2), FittedBox(fit: BoxFit.scaleDown, child: Text(before, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)))])),
                             const Icon(Icons.arrow_forward_rounded, color: Color(0xFF0B7D55)),
-                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [const Text('Balance After', style: TextStyle(fontSize: 11.5, color: Colors.black54)), const SizedBox(height: 2), FittedBox(fit: BoxFit.scaleDown, child: Text(after, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Color(0xFF0B7D55))))])),
+                            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [const Text('Balance After', style: TextStyle(fontSize: 10.5, color: Colors.black54)), const SizedBox(height: 2), FittedBox(fit: BoxFit.scaleDown, child: Text(after, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF0B7D55))))])),
                           ],
                         ),
                       ),
-                    const SizedBox(height: 14),
-                    const Text('Thank you for using KATSINASUB', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
-                    const Padding(padding: EdgeInsets.fromLTRB(0, 2, 0, 18), child: Text('katsinasub.com', style: TextStyle(fontSize: 11.5, color: Colors.black45))),
+                    const SizedBox(height: 10),
+                    const Text('Thank you for using KATSINASUB', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                    const Padding(padding: EdgeInsets.fromLTRB(0, 2, 0, 12), child: Text('katsinasub.com', style: TextStyle(fontSize: 10, color: Colors.black45))),
                   ],
                 ),
               ),
             ),
           ),
-        ),
+        ))),
         const SizedBox(height: 18),
         FilledButton.icon(
           onPressed: _downloading ? null : _downloadReceipt,
