@@ -65,6 +65,7 @@ class ApiService {
     final data = jsonDecode(res.body);
     if (data['success'] == true) {
       await _storage.write(key: 'auth_token', value: data['token']);
+      ApiCache.clear(); // nothing fetched before this login may be reused
     }
     return data;
   }
@@ -87,6 +88,7 @@ class ApiService {
     final data = jsonDecode(res.body);
     if (data['success'] == true) {
       await _storage.write(key: 'auth_token', value: data['token']);
+      ApiCache.clear(); // nothing fetched before this login may be reused
     }
     return data;
   }
@@ -678,6 +680,8 @@ class ApiService {
     // Anything that may have changed because of this request is dropped from the cache.
     // Saved copies are kept (so pages still open instantly) and re-fetched quietly; screens redraw
     // when the new data lands.
+    final path = uri.path;
+    if (path.endsWith('login.php') || path.endsWith('register.php') || path.endsWith('logout.php')) return r;
     const affected = ['me', 'history', 'notifications', 'rewards', 'programs', 'program_detail', 'fundinfo', 'ben:', 'referral', 'transfer_', 'a2c', 'bulksms'];
     for (final e in _uris.entries.toList()) {
       if (affected.any((p) => e.key.startsWith(p))) {
@@ -695,10 +699,14 @@ class ApiService {
 
   Future<Map<String, dynamic>> _fetchStore(String key, Uri uri, {bool notify = false}) {
     _uris[key] = uri;
-    final running = _inflight[key];
+    // Keyed by login "generation" too, so a request that began before a login/logout is never reused.
+    final k = '${ApiCache.epoch}|$key';
+    final running = _inflight[k];
     if (running != null) return running;
-    final f = _fetchStoreNow(key, uri, notify: notify).whenComplete(() => _inflight.remove(key));
-    _inflight[key] = f;
+    // NOTE: the callback must NOT return a value. `() => _inflight.remove(k)` returned this very
+    // future, so it waited for itself and never finished (pages stuck on loading).
+    final f = _fetchStoreNow(key, uri, notify: notify).whenComplete(() { _inflight.remove(k); });
+    _inflight[k] = f;
     return f;
   }
 
@@ -748,13 +756,13 @@ class ApiService {
     return t != null && t.isNotEmpty;
   }
 
-  static Future<void>? _refreshing;
+  static Future<bool>? _refreshing;
   static DateTime? lastFullRefresh;
 
   /// Refreshes the app's data now. `full` (pull-to-refresh, coming back to the app) re-asks for every
   /// page that has been used; the 60-second background refresh (`full: false`) only re-asks for what
   /// changes fast. Saved data is never thrown away or marked old, so nothing ever waits on this.
-  Future<void> refreshAll({bool full = true}) {
+  Future<bool> refreshAll({bool full = true}) {
     final running = _refreshing;
     if (running != null) return running;
     final f = _refreshNow(full).whenComplete(() { _refreshing = null; });
@@ -764,18 +772,27 @@ class ApiService {
 
   static const _hotKeys = ['me', 'history:default', 'notifications', 'rewards', 'dataplans', 'networks'];
 
-  Future<void> _refreshNow(bool full) async {
-    if (!await hasSession()) return;
+  /// Returns true when fresh data arrived. It waits at most 5 seconds; slower answers still land
+  /// in the background and the screens redraw when they do.
+  Future<bool> _refreshNow(bool full) async {
+    if (!await hasSession()) return false;
     final epochAtStart = ApiCache.epoch;
-    if (full && _uris.isEmpty) await warmUp();
+    if (full && _uris.isEmpty) {
+      try { await warmUp().timeout(const Duration(seconds: 5)); } catch (_) {}
+    }
     final jobs = <String, Uri>{
       for (final e in _uris.entries) if (full || _hotKeys.contains(e.key)) e.key: e.value,
     };
-    if (jobs.isEmpty) return;
+    if (jobs.isEmpty) return false;
     _dirty = false;
-    await Future.wait(jobs.entries.map((e) => _fetchStore(e.key, e.value).then<void>((_) {}, onError: (_) {})));
+    var gotFresh = false;
+    final all = Future.wait(jobs.entries.map((e) => _fetchStore(e.key, e.value).then<void>((r) {
+          if (r['success'] == true) gotFresh = true;
+        }, onError: (_) {})));
+    try { await all.timeout(const Duration(seconds: 5)); } catch (_) {}
     lastFullRefresh = DateTime.now();
     if (_dirty && epochAtStart == ApiCache.epoch) ApiCache.notifyChanged();
+    return gotFresh;
   }
 
   Future<void> warmUp() async {
