@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_cache.dart';
+import 'lock_service.dart';
 
 /// Every screen goes through this one class to talk to the website's
 /// backend. Change [baseUrl] to your real domain before building.
@@ -73,6 +74,7 @@ class ApiService {
     required String password,
   }) async {
     ApiCache.clear();
+    LockService.instance.resetSessionUnlock();
     final res = await _post(
       Uri.parse('$baseUrl/login.php'),
       headers: {'Content-Type': 'application/json'},
@@ -91,8 +93,15 @@ class ApiService {
 
   Future<void> logout({String? fcmToken}) async {
     final headers = await _authHeaders();
-    await _post(Uri.parse('$baseUrl/logout.php'), headers: headers, body: jsonEncode({'fcm_token': fcmToken ?? ''}));
-    await _storage.delete(key: 'auth_token');
+    try {
+      await _post(Uri.parse('$baseUrl/logout.php'), headers: headers, body: jsonEncode({'fcm_token': fcmToken ?? ''}));
+    } catch (_) {
+      // Offline: still sign out on this phone.
+    } finally {
+      await _storage.delete(key: 'auth_token');
+      ApiCache.clear();
+      LockService.instance.resetSessionUnlock();
+    }
   }
 
   Future<bool> isLoggedIn() async => (await _token) != null;
@@ -673,10 +682,22 @@ class ApiService {
 
   Future<Map<String, dynamic>> _getCached(String key, Uri uri, {Duration ttl = const Duration(seconds: 25), Duration soft = const Duration(seconds: 15)}) async {
     final hit = ApiCache.peek(key);
-    if (hit is Map) {
-      // Always open immediately from cache and refresh quietly in the background.
-      _fetchStore(key, uri).then((_) {}, onError: (_) {});
-      return Map<String, dynamic>.from(hit);
+    final age = ApiCache.age(key);
+    if (hit is Map && age != null) {
+      // Younger than `soft`: nothing can have changed that matters, use it as is.
+      if (age <= soft) return Map<String, dynamic>.from(hit);
+      // Younger than `ttl`: show it at once and refresh quietly in the background.
+      if (age < ttl) {
+        _fetchStore(key, uri).then((_) {}, onError: (_) {});
+        return Map<String, dynamic>.from(hit);
+      }
+      // Older than `ttl` (about 25-30 seconds): ask the server, so an admin's change shows up
+      // within 15-30 seconds. If the network fails, fall back to what we have.
+      try {
+        return await _fetchStore(key, uri);
+      } catch (_) {
+        return Map<String, dynamic>.from(hit);
+      }
     }
     return _fetchStore(key, uri);
   }
