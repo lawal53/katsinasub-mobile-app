@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
+
 class _Entry {
   final dynamic value;
   final DateTime at;
@@ -18,6 +20,16 @@ class ApiCache {
   static File? _file;
   static bool _loaded = false;
   static Timer? _saveTimer;
+
+  /// Goes up by one whenever fresh data arrives that differs from what a screen may be showing
+  /// (a background refresh found a change, or a full refresh finished). Screens that listen to
+  /// it re-read the cache and redraw by themselves.
+  static final ValueNotifier<int> refreshTick = ValueNotifier<int>(0);
+  static void notifyChanged() => refreshTick.value++;
+
+  /// Goes up on login/logout. A request that started under an older number must not write its
+  /// answer into the cache, or one customer's data could appear for the next customer.
+  static int epoch = 0;
 
   static Future<void> init() async {
     if (_loaded) return;
@@ -44,10 +56,27 @@ class ApiCache {
     return e == null ? null : DateTime.now().difference(e.at);
   }
 
-  static void put(String key, dynamic value) {
+  /// Stores a fresh answer. Returns true when it differs from what was stored before.
+  static bool put(String key, dynamic value) {
+    String? before, after;
+    try { before = _mem[key] == null ? null : jsonEncode(_mem[key]!.value); after = jsonEncode(value); } catch (_) {}
     _mem[key] = _Entry(value, DateTime.now());
     _scheduleSave();
+    return before == null || before != after;
   }
+
+  /// Marks everything as old (nothing is deleted), so the next read goes to the server.
+  static void expireAll() {
+    final old = DateTime.fromMillisecondsSinceEpoch(0);
+    _mem.updateAll((k, e) => _Entry(e.value, old));
+  }
+
+  static void expire(Iterable<String> keys) {
+    final old = DateTime.fromMillisecondsSinceEpoch(0);
+    for (final k in keys) { final e = _mem[k]; if (e != null) _mem[k] = _Entry(e.value, old); }
+  }
+
+  static List<String> keys() => _mem.keys.toList();
 
   /// Forget every entry whose key starts with one of the prefixes (after money moves, etc.).
   static void invalidate(Iterable<String> prefixes) {
@@ -57,6 +86,7 @@ class ApiCache {
 
   /// Forget everything (login / logout): one customer's data must never show for another.
   static void clear() {
+    epoch++;
     _mem.clear();
     _saveTimer?.cancel();
     try { _file?.delete(); } catch (_) {}
