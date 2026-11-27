@@ -103,6 +103,10 @@ class _HomeTabState extends State<HomeTab>  with LiveRefresh {
       _dataUsage = meRes['data_usage'] is Map ? Map<String, dynamic>.from(meRes['data_usage']) : {};
       _loading = false;
     });
+    // Nothing could be loaded yet (e.g. a weak network right after login): try again shortly, quietly.
+    if (meRes['success'] != true && _user == null) {
+      Future.delayed(const Duration(seconds: 3), () { if (mounted && _user == null) _load(); });
+    }
   }
 
   Future<void> _logout() async {
@@ -204,7 +208,7 @@ class _HomeTabState extends State<HomeTab>  with LiveRefresh {
       ),
       drawer: _buildAccountDrawer(),
       body: RefreshIndicator(
-        onRefresh: () => _load(forceRefresh: true),
+        onRefresh: () async { final ok = await _api.refreshAll(); await _load(); if (mounted) showRefreshResult(context, ok); },
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [

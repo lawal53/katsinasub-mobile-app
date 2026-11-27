@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' hide Text;
 import '../l10n.dart';
 import '../format_utils.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 import 'referral_screen.dart';
 
 /// One programme: the rules the admin set, the reward, the time, and — once the
@@ -125,7 +126,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
           : p == null
               ? const Center(child: Text('This programme is not available.'))
               : RefreshIndicator(
-                  onRefresh: () async { await _api.refreshAll(); await _load(); },
+                  onRefresh: () async { final ok = await _api.refreshAll(); await _load(); if (mounted) showRefreshResult(context, ok); },
                   child: ListView(
                     padding: const EdgeInsets.all(20),
                     children: [

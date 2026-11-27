@@ -87,7 +87,7 @@ class _SupportScreenState extends State<SupportScreen>  with LiveRefresh {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: () async { await _api.refreshAll(); await _load(); },
+              onRefresh: () async { final ok = await _api.refreshAll(); await _load(); if (mounted) showRefreshResult(context, ok); },
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [

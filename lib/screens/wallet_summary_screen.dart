@@ -568,7 +568,7 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen>  with LiveRef
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: () async { await _api.refreshAll(); await _load(reset: true); },
+              onRefresh: () async { final ok = await _api.refreshAll(); await _load(reset: true); if (mounted) showRefreshResult(context, ok); },
               child: ListView(
                 controller: _scroll,
                 physics: const AlwaysScrollableScrollPhysics(),

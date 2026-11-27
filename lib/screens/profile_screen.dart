@@ -82,7 +82,7 @@ class _ProfileScreenState extends State<ProfileScreen>  with LiveRefresh {
     return Scaffold(
       appBar: AppBar(title: const Text('Profile'), automaticallyImplyLeading: false),
       body: RefreshIndicator(
-        onRefresh: () => _load(force: true),
+        onRefresh: () async { final ok = await _api.refreshAll(); await _load(); if (mounted) showRefreshResult(context, ok); },
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
