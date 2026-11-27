@@ -257,7 +257,7 @@ class _VtuAppState extends State<VtuApp> with WidgetsBindingObserver {
   void _startAutoRefresh() {
     _autoRefresh?.cancel();
     _autoRefresh = Timer.periodic(const Duration(seconds: 60), (_) {
-      unawaited(_bgApi.refreshAll(full: false).catchError((_) {}));
+      unawaited(_bgApi.refreshAll(full: false).catchError((_) => false));
     });
   }
 
@@ -301,7 +301,7 @@ class _VtuAppState extends State<VtuApp> with WidgetsBindingObserver {
       // Coming back after a while: bring everything up to date straight away.
       final last = ApiService.lastFullRefresh;
       if (last == null || DateTime.now().difference(last) > const Duration(seconds: 30)) {
-        unawaited(_bgApi.refreshAll().catchError((_) {}));
+        unawaited(_bgApi.refreshAll().catchError((_) => false));
       }
     }
   }
