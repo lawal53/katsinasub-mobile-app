@@ -26,6 +26,10 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
   }
 
   Future<void> _load() async {
+    final c = _api.peekKey('program_detail:${widget.programId}');
+    if (c != null && c['success'] == true && mounted) {
+      setState(() { _p = Map<String, dynamic>.from(c['program']); _loading = false; });
+    }
     try {
       final r = await _api.programDetail(widget.programId);
       if (mounted && r['success'] == true) setState(() => _p = Map<String, dynamic>.from(r['program']));

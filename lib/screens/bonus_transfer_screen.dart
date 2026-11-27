@@ -24,7 +24,17 @@ class _BonusTransferScreenState extends State<BonusTransferScreen> {
   }
 
   Future<void> _load() async {
+    final cached = _api.peekMe();
+    if (cached != null && cached['success'] == true && mounted) {
+      setState(() {
+        _bonusBalance = (cached['user']['bonus_balance'] as num).toDouble();
+        _minTransfer = ((cached['user']['bonus_transfer_min'] as num?)?.toDouble()) ?? 100;
+        _amountCtrl.text = _bonusBalance.toString();
+        _loading = false;
+      });
+    }
     final res = await _api.me();
+    if (!mounted) return;
     setState(() {
       _bonusBalance = res['success'] == true ? (res['user']['bonus_balance'] as num).toDouble() : 0;
       _minTransfer = res['success'] == true ? ((res['user']['bonus_transfer_min'] as num?)?.toDouble() ?? 100) : 100;

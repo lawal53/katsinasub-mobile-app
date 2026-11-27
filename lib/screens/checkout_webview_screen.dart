@@ -24,6 +24,7 @@ class CheckoutWebViewScreen extends StatefulWidget {
 class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
   late final WebViewController _controller;
   bool _loading = true;
+  int _progress = 0;
 
   @override
   void initState() {
@@ -32,8 +33,9 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(
-        onPageStarted: (_) => setState(() => _loading = true),
-        onPageFinished: (_) => setState(() => _loading = false),
+        onProgress: (p) { if (mounted) setState(() => _progress = p); },
+        onPageStarted: (_) { if (mounted) setState(() => _loading = true); },
+        onPageFinished: (_) { if (mounted) setState(() => _loading = false); },
         // Payment pages must stay on HTTPS. Anything else (http:, file:,
         // javascript:, intent: ...) is refused for the main page; frames
         // inside the page (e.g. a bank's 3-D Secure box) are left alone.
@@ -70,7 +72,7 @@ class _CheckoutWebViewScreenState extends State<CheckoutWebViewScreen> {
       body: Stack(
         children: [
           WebViewWidget(controller: _controller),
-          if (_loading) const Center(child: CircularProgressIndicator()),
+          if (_loading) Positioned(top: 0, left: 0, right: 0, child: LinearProgressIndicator(value: _progress > 0 ? _progress / 100 : null, minHeight: 3)),
         ],
       ),
     );

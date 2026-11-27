@@ -76,8 +76,20 @@ class _TransferScreenState extends State<TransferScreen> {
   }
 
   Future<void> _load() async {
-    final me = await _api.me();
-    final hist = await _api.transferHistory();
+    // Show what we already have straight away (no spinner), then update quietly.
+    final cMe = _api.peekMe();
+    final cHist = _api.peekKey('transfer_history');
+    if (cMe != null && cMe['success'] == true && mounted) {
+      setState(() {
+        _emailVerified = cMe['user']['email_verified'] == true;
+        _limit = ((cMe['user']['transfer_limit'] as num?)?.toDouble()) ?? 50000;
+        if (cHist != null && cHist['success'] == true) _history = cHist['transfers'];
+        _loading = false;
+      });
+    }
+    final results = await Future.wait([_api.me(), _api.transferHistory()]);
+    final me = results[0];
+    final hist = results[1];
     if (!mounted) return;
     setState(() {
       if (me['success'] == true) {
