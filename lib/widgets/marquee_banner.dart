@@ -25,7 +25,7 @@ class _MarqueeBannerState extends State<MarqueeBanner> with SingleTickerProvider
   Widget build(BuildContext context) {
     final isGoodNews = widget.kind == BannerKind.goodNews;
     final cs = Theme.of(context).colorScheme;
-    final bgColor = isGoodNews ? const Color(0xFF0B7D55) : const Color(0xFFD32F2F);
+    final bgColor = isGoodNews ? cs.primary : const Color(0xFFD32F2F);
     final borderColor = isGoodNews ? cs.primary.withOpacity(0.35) : Colors.transparent;
     final icon = isGoodNews ? Icons.celebration_outlined : Icons.campaign_outlined;
     const style = TextStyle(color: Colors.white, fontSize: 13.5, fontWeight: FontWeight.w600);
