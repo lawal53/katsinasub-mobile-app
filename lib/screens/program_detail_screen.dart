@@ -125,7 +125,7 @@ class _ProgramDetailScreenState extends State<ProgramDetailScreen> {
           : p == null
               ? const Center(child: Text('This programme is not available.'))
               : RefreshIndicator(
-                  onRefresh: _load,
+                  onRefresh: () async { await _api.refreshAll(); await _load(); },
                   child: ListView(
                     padding: const EdgeInsets.all(20),
                     children: [

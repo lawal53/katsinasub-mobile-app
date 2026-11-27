@@ -5,6 +5,7 @@ import '../l10n.dart';
 import '../currency.dart';
 import '../services/api_service.dart';
 import 'receipt_screen.dart' show ReceiptScreen, statusColor, statusLabel;
+import '../services/live_refresh.dart';
 
 /// Transaction History: find any transaction quickly — by type, status, money in / out,
 /// time frame or a search — see totals for what you found, and download a statement.
@@ -14,7 +15,10 @@ class WalletSummaryScreen extends StatefulWidget {
   State<WalletSummaryScreen> createState() => _WalletSummaryScreenState();
 }
 
-class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
+class _WalletSummaryScreenState extends State<WalletSummaryScreen>  with LiveRefresh {
+  @override
+  void onLiveRefresh() { if (_page <= 1) _load(reset: true, silent: true); }
+
   final _api = ApiService();
   final _scroll = ScrollController();
   final _searchCtrl = TextEditingController();
@@ -564,7 +568,7 @@ class _WalletSummaryScreenState extends State<WalletSummaryScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: () => _load(reset: true),
+              onRefresh: () async { await _api.refreshAll(); await _load(reset: true); },
               child: ListView(
                 controller: _scroll,
                 physics: const AlwaysScrollableScrollPhysics(),

@@ -4,6 +4,7 @@ import '../l10n.dart';
 import '../currency.dart';
 import 'package:flutter/services.dart';
 import '../services/api_service.dart';
+import '../services/live_refresh.dart';
 
 class ReferralScreen extends StatefulWidget {
   const ReferralScreen({super.key});
@@ -11,7 +12,10 @@ class ReferralScreen extends StatefulWidget {
   State<ReferralScreen> createState() => _ReferralScreenState();
 }
 
-class _ReferralScreenState extends State<ReferralScreen> {
+class _ReferralScreenState extends State<ReferralScreen>  with LiveRefresh {
+  @override
+  void onLiveRefresh() { _api.referral().then((res) { if (mounted) setState(() => _data = res); }, onError: (_) {}); }
+
   final _api = ApiService();
   Map<String, dynamic>? _data;
 

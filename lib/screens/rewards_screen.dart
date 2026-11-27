@@ -5,6 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import '../services/api_service.dart';
 import 'redeem_reward_screen.dart';
 import 'program_detail_screen.dart';
+import '../services/live_refresh.dart';
 
 /// Rewards: ongoing programmes + the customer's own rewards in three tabs
 /// (Active, Used, Expired).
@@ -14,7 +15,10 @@ class RewardsScreen extends StatefulWidget {
   State<RewardsScreen> createState() => _RewardsScreenState();
 }
 
-class _RewardsScreenState extends State<RewardsScreen> {
+class _RewardsScreenState extends State<RewardsScreen>  with LiveRefresh {
+  @override
+  void onLiveRefresh() { _load(); }
+
   final _api = ApiService();
   Map<String, dynamic> _data = {};
   List<dynamic> _programs = [];
@@ -227,7 +231,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _load,
+              onRefresh: () async { await _api.refreshAll(); await _load(); },
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [

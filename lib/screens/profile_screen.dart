@@ -10,6 +10,7 @@ import 'checkout_webview_screen.dart';
 import 'notifications_screen.dart';
 import 'referral_screen.dart';
 import 'welcome_screen.dart';
+import '../services/live_refresh.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,7 +18,10 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>  with LiveRefresh {
+  @override
+  void onLiveRefresh() { _load(); }
+
   final _api = ApiService();
   Map<String, dynamic>? _user;
 
@@ -31,7 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _load({bool force = false}) async {
     try {
-      if (force) ApiCache.clear();
+      if (force) await _api.refreshAll();
       final r = await _api.me(forceRefresh: force);
       if (mounted && r['success'] == true) setState(() => _user = r['user']);
     } catch (_) {}

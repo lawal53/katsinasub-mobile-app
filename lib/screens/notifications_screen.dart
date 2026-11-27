@@ -3,6 +3,7 @@ import '../l10n.dart';
 import '../services/api_service.dart';
 import '../widgets/linkified_text.dart';
 import 'receipt_screen.dart';
+import '../services/live_refresh.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -10,7 +11,10 @@ class NotificationsScreen extends StatefulWidget {
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen> {
+class _NotificationsScreenState extends State<NotificationsScreen>  with LiveRefresh {
+  @override
+  void onLiveRefresh() { _api.notifications().then((res) { if (mounted && res['success'] == true) setState(() => _notes = res['notifications']); }, onError: (_) {}); }
+
   final _api = ApiService();
   List<dynamic>? _notes;
 

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import 'chat_screen.dart';
 import 'checkout_webview_screen.dart';
+import '../services/live_refresh.dart';
 
 /// Support: every option is a big button. Used as the "Support" tab and
 /// as a normal page when opened from the menu.
@@ -14,7 +15,10 @@ class SupportScreen extends StatefulWidget {
   State<SupportScreen> createState() => _SupportScreenState();
 }
 
-class _SupportScreenState extends State<SupportScreen> {
+class _SupportScreenState extends State<SupportScreen>  with LiveRefresh {
+  @override
+  void onLiveRefresh() { _load(); }
+
   final _api = ApiService();
   Map<String, dynamic> _info = {};
   bool _loading = true;
@@ -83,7 +87,7 @@ class _SupportScreenState extends State<SupportScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _load,
+              onRefresh: () async { await _api.refreshAll(); await _load(); },
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [

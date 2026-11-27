@@ -30,6 +30,7 @@ import 'welcome_screen.dart';
 
 import 'rewards_screen.dart';
 import '../widgets/marquee_banner.dart';
+import '../services/live_refresh.dart';
 
 class HomeTab extends StatefulWidget {
   final void Function(int) onSelectTab;
@@ -38,7 +39,10 @@ class HomeTab extends StatefulWidget {
   State<HomeTab> createState() => _HomeTabState();
 }
 
-class _HomeTabState extends State<HomeTab> {
+class _HomeTabState extends State<HomeTab>  with LiveRefresh {
+  @override
+  void onLiveRefresh() { _load(); }
+
   final _api = ApiService();
   Map<String, dynamic>? _user;
   String _notice = '';
@@ -88,7 +92,7 @@ class _HomeTabState extends State<HomeTab> {
 
   Future<void> _load({bool forceRefresh = false}) async {
     if (forceRefresh) {
-      await _api.warmUp();
+      await _api.refreshAll();
     }
     final meRes = await _api.me(forceRefresh: forceRefresh);
     if (!mounted) return;
